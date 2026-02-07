@@ -1,0 +1,39 @@
+{
+  "name": "connect-barber",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema completo de gestão para barbearias - Multi-tenant SaaS",
+  "author": "Lisboa Codes",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:migrate": "npm run db:migrate --workspace=@connect-barber/backend",
+    "db:seed": "npm run db:seed --workspace=@connect-barber/backend",
+    "db:studio": "npm run db:studio --workspace=@connect-barber/backend",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.1",
+    "turbo": "^1.11.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@10.2.4"
+}

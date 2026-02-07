@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== MULTI-TENANCY ==========
+
+model Tenant {
+  id              String    @id @default(uuid())
+  name            String
+  slug            String    @unique
+
+  // Plano SaaS
+  plan            PlanType  @default(FREE)
+  planExpiresAt   DateTime?
+  maxProfessionals Int      @default(1)
+  isActive        Boolean   @default(true)
+
+  // Configurações
+  settings        Json?     // Horários, notificações, etc
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // Relações
+  users           User[]
+  services        Service[]
+  appointments    Appointment[]
+  products        Product[]
+  cashierSessions CashierSession[]
+
+  @@index([slug])
+  @@map("tenants")
+}
+
+enum PlanType {
+  FREE
+  PRO
+  PREMIUM
+}
+
+// ========== USUÁRIOS & AUTH ==========
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String?   // Null para OAuth
+  name            String
+  phone           String?
+  avatar          String?
+
+  // Multi-tenant
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+
+  // Autenticação
+  emailVerified   Boolean   @default(false)
+  role            UserRole  @default(CLIENT)
+
+  // OAuth
+  googleId        String?   @unique
+
+  // Refresh Token
+  refreshToken    String?
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // Relações
+  appointments    Appointment[]
+  professionalProfile ProfessionalProfile?
+  clientProfile   ClientProfile?
+  cashierSessions CashierSession[]
+  auditLogs       AuditLog[]
+
+  @@index([tenantId, email])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN           // Dono da barbearia
+  PROFESSIONAL    // Barbeiro
+  CLIENT          // Cliente final
+}
+
+// ========== PERFIS ==========
+
+model ProfessionalProfile {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id])
+
+  // Dados profissionais
+  bio             String?
+  specialties     String[]
+
+  // Comissão
+  commissionRate  Decimal   @default(0) @db.Decimal(5, 2) // Percentual
+
+  // Disponibilidade
+  workSchedule    Json      // { "monday": { start: "09:00", end: "18:00" }, ... }
+
+  // Google Calendar Integration
+  googleCalendarId String?
+  googleAccessToken String?
+  googleRefreshToken String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  appointments    Appointment[]
+
+  @@map("professional_profiles")
+}
+
+model ClientProfile {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id])
+
+  // Fidelidade
+  loyaltyPoints   Int       @default(0)
+
+  // Preferências
+  preferredProfessionalId String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("client_profiles")
+}
+
+// ========== SERVIÇOS ==========
+
+model Service {
+  id              String    @id @default(uuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+
+  name            String
+  description     String?
+  durationMinutes Int
+  price           Decimal   @db.Decimal(10, 2)
+
+  // Comissão específica do serviço (sobrescreve a do profissional)
+  commissionRate  Decimal?  @db.Decimal(5, 2)
+
+  isActive        Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  appointments    Appointment[]
+
+  @@index([tenantId])
+  @@map("services")
+}
+
+// ========== AGENDAMENTOS ==========
+
+model Appointment {
+  id              String            @id @default(uuid())
+  tenantId        String
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+
+  // Cliente
+  clientId        String
+  client          User              @relation(fields: [clientId], references: [id])
+
+  // Profissional
+  professionalId  String
+  professional    ProfessionalProfile @relation(fields: [professionalId], references: [id])
+
+  // Serviço
+  serviceId       String
+  service         Service           @relation(fields: [serviceId], references: [id])
+
+  // Data e hora
+  scheduledAt     DateTime
+  endAt           DateTime
+
+  // Status
+  status          AppointmentStatus @default(PENDING)
+
+  // Observações
+  notes           String?
+
+  // Cancelamento
+  cancelledAt     DateTime?
+  cancelReason    String?
+
+  // Google Calendar
+  googleEventId   String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  @@index([tenantId, scheduledAt])
+  @@index([professionalId, scheduledAt])
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+// ========== CAIXA ==========
+
+model CashierSession {
+  id              String    @id @default(uuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+
+  // Responsável
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+
+  // Abertura/Fechamento
+  openedAt        DateTime  @default(now())
+  closedAt        DateTime?
+
+  // Saldos
+  initialBalance  Decimal   @default(0) @db.Decimal(10, 2)
+  finalBalance    Decimal?  @db.Decimal(10, 2)
+
+  // Status
+  status          CashierStatus @default(OPEN)
+
+  // Transações
+  transactions    Transaction[]
+
+  @@index([tenantId, openedAt])
+  @@map("cashier_sessions")
+}
+
+enum CashierStatus {
+  OPEN
+  CLOSED
+}
+
+model Transaction {
+  id              String          @id @default(uuid())
+  cashierSessionId String
+  cashierSession  CashierSession  @relation(fields: [cashierSessionId], references: [id])
+
+  type            TransactionType
+  amount          Decimal         @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod
+
+  // Relacionamento
+  appointmentId   String?
+  productId       String?
+  product         Product?        @relation(fields: [productId], references: [id])
+
+  description     String?
+
+  createdAt       DateTime        @default(now())
+
+  @@index([cashierSessionId, createdAt])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  INCOME          // Entrada
+  EXPENSE         // Saída
+  WITHDRAWAL      // Sangria
+}
+
+enum PaymentMethod {
+  CASH
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+}
+
+// ========== PRODUTOS ==========
+
+model Product {
+  id              String    @id @default(uuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+
+  name            String
+  description     String?
+  price           Decimal   @db.Decimal(10, 2)
+
+  // Estoque
+  stock           Int       @default(0)
+  minStock        Int       @default(0)
+
+  isActive        Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  transactions    Transaction[]
+
+  @@index([tenantId])
+  @@map("products")
+}
+
+// ========== AUDITORIA ==========
+
+model AuditLog {
+  id              String    @id @default(uuid())
+
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id])
+
+  action          String    // CREATE, UPDATE, DELETE
+  entity          String    // Nome da entidade
+  entityId        String    // ID da entidade afetada
+
+  before          Json?     // Estado anterior
+  after           Json?     // Estado posterior
+
+  ipAddress       String?
+  userAgent       String?
+
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
