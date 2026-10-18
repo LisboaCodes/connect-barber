@@ -73,6 +73,9 @@ export interface PublicBarbershop {
   openingHours: Record<string, TimeRange[]> | null;
   timezone: string;
   onlineBookingEnabled: boolean;
+  onlinePaymentEnabled?: boolean;
+  requirePrepayment?: boolean;
+  kioskEnabled?: boolean;
   cancelLimitHours: number;
   minAdvanceMin: number;
   maxAdvanceDays: number;
@@ -101,6 +104,8 @@ export interface BookingPayload {
   phone?: string;
   email?: string;
   notes?: string;
+  payment?: 'ONLINE' | 'COUNTER';
+  returnUrl?: string;
 }
 
 export interface BookedAppointment {
@@ -143,7 +148,7 @@ export const publicApi = {
       })
       .then((r) => r.data),
   book: (slug: string, payload: BookingPayload) =>
-    api.post<{ appointment: BookedAppointment; message: string }>(`/public/barbershops/${slug}/book`, payload).then((r) => r.data),
+    api.post<{ appointment: BookedAppointment; message: string; payment: { intentId: string; checkoutUrl: string | null; amount: number } | null }>(`/public/barbershops/${slug}/book`, payload).then((r) => r.data),
   waitlist: (slug: string, payload: WaitlistPayload) => api.post(`/public/barbershops/${slug}/waitlist`, payload).then((r) => r.data),
   survey: (token: string) => api.get<PublicSurvey>(`/public/surveys/${token}`).then((r) => r.data),
   answerSurvey: (token: string, payload: { rating: number; comment?: string }) => api.post(`/public/surveys/${token}`, payload).then((r) => r.data),

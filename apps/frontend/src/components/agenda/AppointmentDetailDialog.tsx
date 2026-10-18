@@ -87,6 +87,8 @@ export function AppointmentDetailDialog({
             {/* cabeçalho */}
             <div className="flex flex-wrap items-center gap-2">
               <Badge className={cn('border', STATUS_COLOR[s])}>{STATUS_LABEL[s]}</Badge>
+              {a.checkedInAt && <Badge variant="success">Chegou {new Date(a.checkedInAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Badge>}
+              {Number(a.prepaidAmount ?? 0) > 0 && <Badge variant="secondary">Sinal pago</Badge>}
               {a.isFitIn && (
                 <Badge variant="warning" className="gap-1">
                   <Zap className="h-3 w-3" /> Encaixe

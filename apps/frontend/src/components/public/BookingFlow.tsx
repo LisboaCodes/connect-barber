@@ -195,6 +195,10 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
     }
   }, [availability.data, slots, time]);
 
+  // ---------- pagamento ----------
+  const canPayOnline = !!shop.onlinePaymentEnabled;
+  const [payMethod, setPayMethod] = useState<'ONLINE' | 'COUNTER'>(shop.requirePrepayment ? 'ONLINE' : 'COUNTER');
+
   // ---------- agendamento ----------
   const book = useMutation({
     mutationFn: () =>
@@ -207,10 +211,17 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
           ? { phone: onlyDigits(phone) || undefined }
           : { name: name.trim(), phone: onlyDigits(phone), email: email.trim() || undefined }),
         notes: notes.trim() || undefined,
+        payment: canPayOnline ? payMethod : undefined,
+        returnUrl: canPayOnline && payMethod === 'ONLINE' ? `${window.location.origin}/b/${slug}/agendar?pago=1` : undefined,
       }),
     onSuccess: (r) => {
       setResult(r);
       clearDraft(slug);
+      if (r.payment?.checkoutUrl) {
+        toast.success('Redirecionando para o pagamento…');
+        window.location.href = r.payment.checkoutUrl;
+        return;
+      }
       setStep('success');
       toast.success(r.message || 'Agendamento realizado!');
     },
@@ -336,6 +347,23 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
       </Shell>
     );
   }
+
+  if (params.get('pago')) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="mx-auto max-w-xl px-4 py-16 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle2 className="h-8 w-8" /></div>
+          <h1 className="mt-4 text-2xl font-bold">Obrigado!</h1>
+          <p className="mt-2 text-muted-foreground">Assim que o pagamento for confirmado, seu horário fica garantido e você recebe a confirmação por WhatsApp ou e-mail.</p>
+          <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+            <Button asChild><Link to="/cliente">Ver meus agendamentos</Link></Button>
+            <Button asChild variant="outline"><Link to={`/b/${slug}`}>Voltar ao site da barbearia</Link></Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <Shell shop={shop} onBack={goBack} title="Agendar horário">
@@ -575,10 +603,28 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
           <Field label="Observações" hint="Opcional">
             <Textarea maxLength={500} rows={3} placeholder="Algo que a barbearia precise saber?" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
+          {canPayOnline && (
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Como você prefere pagar?</div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button type="button" onClick={() => setPayMethod('ONLINE')} className={cn('rounded-xl border bg-white p-3 text-left text-sm transition-colors', payMethod === 'ONLINE' ? 'border-gold-500 ring-2 ring-gold-500/30' : 'hover:border-gray-300')}>
+                  <div className="font-semibold">Pagar agora</div>
+                  <div className="text-xs text-muted-foreground">Pix ou cartão, com horário garantido</div>
+                </button>
+                {!shop.requirePrepayment && (
+                  <button type="button" onClick={() => setPayMethod('COUNTER')} className={cn('rounded-xl border bg-white p-3 text-left text-sm transition-colors', payMethod === 'COUNTER' ? 'border-gold-500 ring-2 ring-gold-500/30' : 'hover:border-gray-300')}>
+                    <div className="font-semibold">Pagar na barbearia</div>
+                    <div className="text-xs text-muted-foreground">No balcão, depois do atendimento</div>
+                  </button>
+                )}
+              </div>
+              {shop.requirePrepayment && <p className="text-xs text-muted-foreground">Esta barbearia confirma o horário somente após o pagamento.</p>}
+            </div>
+          )}
           {shop.cancelLimitHours > 0 && <p className="text-xs text-muted-foreground">Você poderá cancelar online até {shop.cancelLimitHours}h antes do horário.</p>}
-          {shop.paymentInfo && <p className="text-xs text-muted-foreground">Pagamento na barbearia. {shop.paymentInfo}</p>}
+          {!canPayOnline && shop.paymentInfo && <p className="text-xs text-muted-foreground">Pagamento na barbearia. {shop.paymentInfo}</p>}
           <Button size="xl" className="w-full" loading={book.isPending} onClick={() => book.mutate()}>
-            Confirmar agendamento
+            {canPayOnline && payMethod === 'ONLINE' ? 'Confirmar e pagar' : 'Confirmar agendamento'}
           </Button>
         </div>
       )}
@@ -625,6 +671,7 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
 // ---------------------------------------------------------------------------
 
 function Shell({ shop, onBack, title, children }: { shop: PublicBarbershop; onBack: () => void; title: string; children: ReactNode }) {
+
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
       <header className="sticky top-0 z-20 border-b bg-white/95 backdrop-blur">

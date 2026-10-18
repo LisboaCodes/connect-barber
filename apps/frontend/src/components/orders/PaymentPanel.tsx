@@ -1,3 +1,4 @@
+import { OnlineChargeButtons } from './OnlineChargeDialog';
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -99,6 +100,8 @@ export function PaymentPanel({ order, onDone, editable }: { order: Order; onDone
           ))}
         </div>
       )}
+
+      {editable && remaining > 0 && <OnlineChargeButtons order={order} onDone={onDone} remaining={remaining} />}
 
       {editable && remaining > 0 && (
         <form

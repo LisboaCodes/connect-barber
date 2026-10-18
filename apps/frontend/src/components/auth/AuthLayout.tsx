@@ -26,7 +26,7 @@ export function AuthLayout({
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="relative hidden w-[44%] max-w-xl flex-col justify-between overflow-hidden bg-gray-950 p-10 text-white lg:flex">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(201,162,39,0.35),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(165,140,100,0.45),transparent_60%)]" />
         <Link to="/" className="relative flex items-center">
           <img src="/logo-dark.png" alt="Connect Barber" className="h-16 w-auto" />
         </Link>

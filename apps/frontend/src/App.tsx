@@ -48,6 +48,7 @@ const ProfilePage = lazy(() => import('@/pages/app/ProfilePage'));
 // Público e cliente
 const BarbershopPage = lazy(() => import('@/pages/public/BarbershopPage'));
 const SurveyPage = lazy(() => import('@/pages/public/SurveyPage'));
+const KioskPage = lazy(() => import('@/pages/public/KioskPage'));
 const ClientAreaPage = lazy(() => import('@/pages/client/ClientAreaPage'));
 
 // Administração da plataforma
@@ -87,6 +88,7 @@ export default function App() {
             <Route path="/b/:slug" element={<BarbershopPage />} />
             <Route path="/b/:slug/*" element={<BarbershopPage />} />
             <Route path="/avaliar/:token" element={<SurveyPage />} />
+            <Route path="/totem/:slug" element={<KioskPage />} />
 
             {/* Área do cliente */}
             <Route element={<RequireAuth />}>

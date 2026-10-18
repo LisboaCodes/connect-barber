@@ -1,5 +1,6 @@
+import PaymentsKioskSettings from '@/components/settings/PaymentsKioskSettings';
 import { useSearchParams } from 'react-router-dom';
-import { Building2, CalendarClock, Clock, CreditCard, MessageSquareText, Settings, Users } from 'lucide-react';
+import { Building2, CalendarClock, Clock, CreditCard, MessageSquareText, Settings, Smartphone, Users } from 'lucide-react';
 import { Button, EmptyState, PageHeader, PageLoader, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 import { BusinessInfoForm } from '@/components/settings/BusinessInfoForm';
 import { OpeningHoursForm } from '@/components/settings/OpeningHoursForm';
@@ -17,6 +18,7 @@ const TABS = [
   { value: 'mensagens', label: 'Mensagens automáticas', icon: MessageSquareText },
   { value: 'equipe', label: 'Equipe e acessos', icon: Users },
   { value: 'pagamentos', label: 'Formas de pagamento', icon: CreditCard },
+  { value: 'online', label: 'Pagamento online e totem', icon: Smartphone },
 ];
 
 export default function SettingsPage() {
@@ -58,6 +60,9 @@ export default function SettingsPage() {
             </TabsContent>
             <TabsContent value="pagamentos">
               <PaymentMethodsSettings />
+            </TabsContent>
+            <TabsContent value="online">
+              <PaymentsKioskSettings tenant={tenant} />
             </TabsContent>
           </div>
         </Tabs>

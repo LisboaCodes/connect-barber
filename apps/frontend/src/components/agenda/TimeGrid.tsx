@@ -249,6 +249,7 @@ export function TimeGrid({
                             <span className={cn('h-2 w-2 shrink-0 rounded-full', STATUS_DOT[a.status])} />
                             <span className="font-semibold tabular-nums">{toHHMM(start)}</span>
                             {a.isFitIn && <Zap className="h-3 w-3 shrink-0 text-amber-600" />}
+                            {a.checkedInAt && <span className="shrink-0 rounded bg-emerald-600 px-1 text-[9px] font-semibold text-white">CHEGOU</span>}
                             {a.recurrenceId && <Repeat className="h-3 w-3 shrink-0 text-muted-foreground" />}
                             {a.orderId && <span className="ml-auto shrink-0 rounded bg-white/70 px-1 text-[9px] font-semibold">CMD</span>}
                           </div>

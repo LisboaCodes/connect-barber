@@ -121,7 +121,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
           {shop.coverUrl ? (
             <img src={shop.coverUrl} alt="" className="h-full w-full object-cover" />
           ) : (
-            <div className="h-full w-full bg-[radial-gradient(ellipse_at_top_left,rgba(201,162,39,0.35),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(255,255,255,0.08),transparent_50%),#0b0b0f]" />
+            <div className="h-full w-full bg-[radial-gradient(ellipse_at_top_left,rgba(165,140,100,0.45),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(255,255,255,0.08),transparent_50%),#0b0b0f]" />
           )}
           <div className="absolute inset-0 bg-gradient-to-b from-moss-950/70 via-moss-950/60 to-moss-950" />
         </div>
@@ -153,7 +153,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
               {shop.description && <p className="mt-3 max-w-2xl text-base text-gray-300 sm:text-lg">{shop.description}</p>}
               <div className="mt-6 flex flex-wrap gap-3">
                 {booking && (
-                  <Button asChild size="xl" className="shadow-[0_10px_30px_-10px_rgba(201,162,39,0.7)]">
+                  <Button asChild size="xl" className="shadow-[0_10px_30px_-10px_rgba(165,140,100,0.7)]">
                     <Link to={`${base}/agendar`}>
                       <CalendarCheck /> Agendar agora
                     </Link>
@@ -259,11 +259,11 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
                     {p.avatarUrl ? (
                       <img src={p.avatarUrl} alt={p.name} className="h-24 w-24 rounded-full object-cover ring-2 ring-white/10 transition-transform group-hover:scale-105" />
                     ) : (
-                      <div className="flex h-24 w-24 items-center justify-center rounded-full text-2xl font-bold text-white ring-2 ring-white/10" style={{ backgroundColor: p.color ?? '#C9A227' }}>
+                      <div className="flex h-24 w-24 items-center justify-center rounded-full text-2xl font-bold text-white ring-2 ring-white/10" style={{ backgroundColor: p.color ?? '#a58c64' }}>
                         {p.name.split(' ').filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join('')}
                       </div>
                     )}
-                    <span className="absolute -bottom-1 left-1/2 h-2.5 w-10 -translate-x-1/2 rounded-full blur-md" style={{ backgroundColor: p.color ?? '#C9A227', opacity: 0.6 }} />
+                    <span className="absolute -bottom-1 left-1/2 h-2.5 w-10 -translate-x-1/2 rounded-full blur-md" style={{ backgroundColor: p.color ?? '#a58c64', opacity: 0.6 }} />
                   </div>
                   <div className="mt-4 font-semibold text-white">{p.name}</div>
                   {p.bio && <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-gray-400">{p.bio}</p>}

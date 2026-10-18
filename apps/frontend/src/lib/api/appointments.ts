@@ -13,6 +13,8 @@ export interface AgendaProfessional {
 }
 
 export interface AgendaAppointment {
+  checkedInAt?: string | null;
+  prepaidAmount?: number | string | null;
   id: string;
   clientId: string | null;
   professionalId: string;

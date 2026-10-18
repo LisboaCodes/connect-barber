@@ -5,6 +5,11 @@ import api, { errorMessage } from './client';
 export type OpeningHours = Record<string, { start: string; end: string }[]>;
 
 export interface Tenant {
+  onlinePaymentEnabled: boolean;
+  kioskEnabled: boolean;
+  posEnabled: boolean;
+  posProvider: string | null;
+  integrations?: { creativePay: boolean; creativePayLast4: string | null; creativePayWebhookSecret: boolean; pos: boolean; posDeviceId: string | null; kioskToken: string | null };
   id: string;
   name: string;
   slug: string;

@@ -81,6 +81,7 @@ export function AgendaList({
                         <div className={cn('flex items-center gap-1.5 truncate text-sm font-medium', a.status === 'CANCELLED' && 'line-through opacity-70')}>
                           {name}
                           {a.isFitIn && <Zap className="h-3.5 w-3.5 text-amber-600" />}
+                          {a.checkedInAt && <Badge variant="success" className="text-[10px]">Chegou</Badge>}
                           {a.recurrenceId && <Repeat className="h-3.5 w-3.5 text-muted-foreground" />}
                         </div>
                         <div className="truncate text-xs text-muted-foreground">
