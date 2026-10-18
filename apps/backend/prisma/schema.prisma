@@ -7,277 +7,652 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ========== MULTI-TENANCY ==========
+// =====================================================================
+// CONTAS, BARBEARIAS (TENANTS) E ACESSO
+// =====================================================================
 
+/// Conta de acesso (dono, profissional, recepção ou cliente final).
+/// Um usuário pode pertencer a várias barbearias (Membership) e também ser cliente.
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String?
+  name          String
+  phone         String?
+  avatarUrl     String?
+  emailVerified Boolean   @default(false)
+  googleId      String?   @unique
+  isSuperAdmin  Boolean   @default(false)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  memberships    Membership[]
+  refreshTokens  RefreshToken[]
+  clients        Client[]
+  auditLogs      AuditLog[]
+  passwordResets PasswordReset[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  tenantId  String?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+  userAgent String?
+  ip        String?
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordReset {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("password_resets")
+}
+
+enum MemberRole {
+  OWNER // dono: tudo
+  ADMIN // gestor: tudo menos plano/faturamento
+  RECEPTION // recepção: agenda, comandas, caixa, clientes
+  PROFESSIONAL // profissional: própria agenda e comissões
+}
+
+/// Vínculo usuário x barbearia com papel e permissões.
+model Membership {
+  id          String     @id @default(uuid())
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        MemberRole @default(PROFESSIONAL)
+  /// Restrições finas definidas pelo gestor (ex.: {"canSeeFinance": false})
+  permissions Json?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  professional Professional?
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+enum PlanCode {
+  TRIAL
+  P1 // 1 profissional
+  P2_5 // 2 a 5
+  P6_15 // 6 a 15
+  P15_PLUS // mais de 15
+}
+
+enum PlanStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  BLOCKED
+}
+
+/// Barbearia (tenant). Todo dado operacional carrega tenantId.
 model Tenant {
-  id              String    @id @default(uuid())
-  name            String
-  slug            String    @unique
+  id          String  @id @default(uuid())
+  name        String
+  slug        String  @unique
+  legalName   String?
+  document    String? // CPF ou CNPJ
+  email       String?
+  phone       String?
+  whatsapp    String?
+  description String?
+  logoUrl     String?
+  coverUrl    String?
+  timezone    String  @default("America/Sao_Paulo")
 
-  // Plano SaaS
-  plan            PlanType  @default(FREE)
-  planExpiresAt   DateTime?
-  maxProfessionals Int      @default(1)
-  isActive        Boolean   @default(true)
+  // Endereço
+  addressStreet     String?
+  addressNumber     String?
+  addressComplement String?
+  addressDistrict   String?
+  addressCity       String?
+  addressState      String?
+  addressZip        String?
+  latitude          Float?
+  longitude         Float?
 
-  // Configurações
-  settings        Json?     // Horários, notificações, etc
+  // Site público
+  siteEnabled          Boolean @default(true)
+  siteAbout            String?
+  siteGallery          Json? // [url, url...]
+  siteInstagram        String?
+  siteFacebook         String?
+  sitePaymentInfo      String?
+  onlineBookingEnabled Boolean @default(true)
 
-  // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
+  // Configurações operacionais
+  /// Horário de funcionamento por dia: {"1":[{"start":"09:00","end":"18:00"}], ...} (0=domingo)
+  openingHours      Json?
+  slotIntervalMin   Int     @default(15)
+  minAdvanceMin     Int     @default(60) // antecedência mínima para agendar online
+  maxAdvanceDays    Int     @default(60) // até quantos dias à frente
+  cancelLimitHours  Int     @default(2) // cliente pode cancelar online até X horas antes
+  autoConfirm       Boolean @default(true) // agendamentos online nascem CONFIRMED
+  requirePrepayment Boolean @default(false)
 
-  // Relações
-  users           User[]
-  services        Service[]
-  appointments    Appointment[]
-  products        Product[]
-  cashierSessions CashierSession[]
+  // Lembretes e mensagens automáticas
+  reminderEnabled        Boolean @default(true)
+  reminderHoursBefore    Int     @default(24)
+  reminderChannels       Json? // ["WHATSAPP","EMAIL"]
+  birthdayMessageEnabled Boolean @default(false)
+  birthdayMessage        String?
+  surveyEnabled          Boolean @default(false)
+  settings               Json? // demais preferências
+
+  // Plano
+  planCode         PlanCode   @default(TRIAL)
+  planStatus       PlanStatus @default(TRIAL)
+  trialEndsAt      DateTime?
+  planRenewsAt     DateTime?
+  maxProfessionals Int        @default(999)
+  onboardingStep   Int        @default(0) // 0=não iniciou ... 4=concluído
+
+  orderSeq Int @default(0)
+
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  memberships          Membership[]
+  professionals        Professional[]
+  clients              Client[]
+  services             Service[]
+  serviceCategories    ServiceCategory[]
+  appointments         Appointment[]
+  scheduleBlocks       ScheduleBlock[]
+  orders               Order[]
+  cashierSessions      CashierSession[]
+  cashMovements        CashMovement[]
+  financeCategories    FinanceCategory[]
+  financeEntries       FinanceEntry[]
+  paymentMethods       PaymentMethodConfig[]
+  products             Product[]
+  productCategories    ProductCategory[]
+  stockMovements       StockMovement[]
+  commissionEntries    CommissionEntry[]
+  commissionPayouts    CommissionPayout[]
+  professionalAdvances ProfessionalAdvance[]
+  loyaltyProgram       LoyaltyProgram?
+  loyaltyTransactions  LoyaltyTransaction[]
+  packages             Package[]
+  clientPackages       ClientPackage[]
+  clubs                ClientClub[]
+  campaigns            Campaign[]
+  messageLogs          MessageLog[]
+  waitlist             WaitlistEntry[]
+  surveys              SatisfactionSurvey[]
+  returnRules          ReturnRule[]
+  invoices             Invoice[]
+  auditLogs            AuditLog[]
 
   @@index([slug])
   @@map("tenants")
 }
 
-enum PlanType {
-  FREE
-  PRO
-  PREMIUM
+// =====================================================================
+// PROFISSIONAIS E JORNADA
+// =====================================================================
+
+model Professional {
+  id           String      @id @default(uuid())
+  tenantId     String
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  membershipId String?     @unique
+  membership   Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  name                 String
+  phone                String?
+  email                String?
+  avatarUrl            String?
+  bio                  String?
+  color                String  @default("#f59e0b")
+  displayOrder         Int     @default(0)
+  showOnSite           Boolean @default(true)
+  acceptsOnlineBooking Boolean @default(true)
+
+  /// Comissão padrão (%) sobre serviços e produtos; o serviço/produto pode sobrescrever
+  serviceCommissionPct Decimal @default(0) @db.Decimal(5, 2)
+  productCommissionPct Decimal @default(0) @db.Decimal(5, 2)
+
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  workSchedules     WorkSchedule[]
+  scheduleOverrides ScheduleOverride[]
+  scheduleBlocks    ScheduleBlock[]
+  services          ServiceProfessional[]
+  appointments      Appointment[]
+  orders            Order[]
+  orderItems        OrderItem[]
+  commissionEntries CommissionEntry[]
+  commissionPayouts CommissionPayout[]
+  advances          ProfessionalAdvance[]
+  preferredBy       Client[]
+  waitlist          WaitlistEntry[]
+  surveys           SatisfactionSurvey[]
+
+  @@index([tenantId])
+  @@map("professionals")
 }
 
-// ========== USUÁRIOS & AUTH ==========
+/// Jornada por dia da semana (pode ter mais de um intervalo por dia).
+model WorkSchedule {
+  id             String       @id @default(uuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  weekday        Int // 0=domingo ... 6=sábado
+  startTime      String // "09:00"
+  endTime        String // "18:00"
 
-model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  password        String?   // Null para OAuth
-  name            String
-  phone           String?
-  avatar          String?
-
-  // Multi-tenant
-  tenantId        String
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
-
-  // Autenticação
-  emailVerified   Boolean   @default(false)
-  role            UserRole  @default(CLIENT)
-
-  // OAuth
-  googleId        String?   @unique
-
-  // Refresh Token
-  refreshToken    String?
-
-  // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
-
-  // Relações
-  appointments    Appointment[]
-  professionalProfile ProfessionalProfile?
-  clientProfile   ClientProfile?
-  cashierSessions CashierSession[]
-  auditLogs       AuditLog[]
-
-  @@index([tenantId, email])
-  @@map("users")
+  @@index([professionalId, weekday])
+  @@map("work_schedules")
 }
 
-enum UserRole {
-  ADMIN           // Dono da barbearia
-  PROFESSIONAL    // Barbeiro
-  CLIENT          // Cliente final
+enum OverrideType {
+  EXTRA // jornada estendida/específica no dia
+  OFF // folga no dia
 }
 
-// ========== PERFIS ==========
+/// Jornada específica por data (jornada estendida ou folga).
+model ScheduleOverride {
+  id             String       @id @default(uuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  date           DateTime     @db.Date
+  type           OverrideType
+  startTime      String?
+  endTime        String?
+  reason         String?
 
-model ProfessionalProfile {
-  id              String    @id @default(uuid())
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id])
-
-  // Dados profissionais
-  bio             String?
-  specialties     String[]
-
-  // Comissão
-  commissionRate  Decimal   @default(0) @db.Decimal(5, 2) // Percentual
-
-  // Disponibilidade
-  workSchedule    Json      // { "monday": { start: "09:00", end: "18:00" }, ... }
-
-  // Google Calendar Integration
-  googleCalendarId String?
-  googleAccessToken String?
-  googleRefreshToken String?
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  appointments    Appointment[]
-
-  @@map("professional_profiles")
+  @@index([professionalId, date])
+  @@map("schedule_overrides")
 }
 
-model ClientProfile {
-  id              String    @id @default(uuid())
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id])
+/// Bloqueio de horário (almoço extra, compromisso, feriado). professionalId nulo = toda a barbearia.
+model ScheduleBlock {
+  id             String        @id @default(uuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  startAt        DateTime
+  endAt          DateTime
+  reason         String?
+  createdAt      DateTime      @default(now())
 
-  // Fidelidade
-  loyaltyPoints   Int       @default(0)
-
-  // Preferências
-  preferredProfessionalId String?
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@map("client_profiles")
+  @@index([tenantId, startAt])
+  @@map("schedule_blocks")
 }
 
-// ========== SERVIÇOS ==========
+// =====================================================================
+// SERVIÇOS
+// =====================================================================
+
+model ServiceCategory {
+  id           String    @id @default(uuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  displayOrder Int       @default(0)
+  services     Service[]
+
+  @@map("service_categories")
+}
 
 model Service {
-  id              String    @id @default(uuid())
-  tenantId        String
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  id         String           @id @default(uuid())
+  tenantId   String
+  tenant     Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
-  name            String
-  description     String?
-  durationMinutes Int
-  price           Decimal   @db.Decimal(10, 2)
+  name               String
+  description        String?
+  durationMinutes    Int      @default(30)
+  price              Decimal  @db.Decimal(10, 2)
+  costPrice          Decimal? @db.Decimal(10, 2)
+  commissionPct      Decimal? @db.Decimal(5, 2)
+  color              String?
+  imageUrl           String?
+  displayOrder       Int      @default(0)
+  allowOnlineBooking Boolean  @default(true)
+  /// Dias para mensagem de retorno (ex.: 30 = "já faz 30 dias do seu corte")
+  returnDays         Int?
+  loyaltyPoints      Int? // pontos ganhos; nulo = regra padrão do programa
 
-  // Comissão específica do serviço (sobrescreve a do profissional)
-  commissionRate  Decimal?  @db.Decimal(5, 2)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  isActive        Boolean   @default(true)
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
-
-  appointments    Appointment[]
+  professionals      ServiceProfessional[]
+  appointmentItems   AppointmentService[]
+  orderItems         OrderItem[]
+  packageItems       PackageItem[]
+  clientPackageItems ClientPackageItem[]
+  rewards            LoyaltyReward[]
+  returnRules        ReturnRule[]
+  waitlist           WaitlistEntry[]
 
   @@index([tenantId])
   @@map("services")
 }
 
-// ========== AGENDAMENTOS ==========
+/// Quais profissionais executam cada serviço (com preço/duração opcionalmente diferentes).
+model ServiceProfessional {
+  serviceId       String
+  service         Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  professionalId  String
+  professional    Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  price           Decimal?     @db.Decimal(10, 2)
+  durationMinutes Int?
+
+  @@id([serviceId, professionalId])
+  @@map("service_professionals")
+}
+
+// =====================================================================
+// CLIENTES
+// =====================================================================
+
+model Client {
+  id       String  @id @default(uuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  name      String
+  phone     String?
+  email     String?
+  birthDate DateTime? @db.Date
+  gender    String?
+  document  String?
+  notes     String?
+  avatarUrl String?
+  tags      String[]
+  source    String? // ADMIN, SITE, APP, IMPORT
+
+  preferredProfessionalId String?
+  preferredProfessional   Professional? @relation(fields: [preferredProfessionalId], references: [id], onDelete: SetNull)
+
+  clubId    String?
+  club      ClientClub? @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  clubSince DateTime?
+
+  loyaltyPoints  Int       @default(0)
+  visitsCount    Int       @default(0)
+  totalSpent     Decimal   @default(0) @db.Decimal(12, 2)
+  lastVisitAt    DateTime?
+  noShowCount    Int       @default(0)
+  blocked        Boolean   @default(false)
+  marketingOptIn Boolean   @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  appointments        Appointment[]
+  orders              Order[]
+  loyaltyTransactions LoyaltyTransaction[]
+  packages            ClientPackage[]
+  messageLogs         MessageLog[]
+  campaignRecipients  CampaignRecipient[]
+  waitlist            WaitlistEntry[]
+  surveys             SatisfactionSurvey[]
+
+  @@index([tenantId, phone])
+  @@index([tenantId, name])
+  @@index([tenantId, email])
+  @@index([userId])
+  @@map("clients")
+}
+
+// =====================================================================
+// AGENDA
+// =====================================================================
+
+enum AppointmentStatus {
+  SCHEDULED // marcado (aguardando confirmação)
+  CONFIRMED // confirmado
+  IN_PROGRESS // em atendimento
+  COMPLETED // finalizado
+  CANCELLED // cancelado
+  NO_SHOW // não compareceu
+}
+
+enum AppointmentSource {
+  ADMIN // lançado pela barbearia
+  SITE // site público da barbearia
+  CLIENT // área do cliente
+  WAITLIST
+  RECURRING
+}
 
 model Appointment {
-  id              String            @id @default(uuid())
-  tenantId        String
-  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  id             String       @id @default(uuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId       String?
+  client         Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id])
 
-  // Cliente
-  clientId        String
-  client          User              @relation(fields: [clientId], references: [id])
+  startAt       DateTime
+  endAt         DateTime
+  status        AppointmentStatus @default(SCHEDULED)
+  source        AppointmentSource @default(ADMIN)
+  isFitIn       Boolean           @default(false) // encaixe (fora da jornada/sobreposto)
+  notes         String?
+  internalNotes String?
+  /// Nome/telefone informados no agendamento (quando sem cadastro de cliente)
+  guestName     String?
+  guestPhone    String?
 
-  // Profissional
-  professionalId  String
-  professional    ProfessionalProfile @relation(fields: [professionalId], references: [id])
+  totalPrice    Decimal @default(0) @db.Decimal(10, 2)
+  totalDuration Int     @default(0)
 
-  // Serviço
-  serviceId       String
-  service         Service           @relation(fields: [serviceId], references: [id])
+  recurrenceId String?
+  recurrence   AppointmentRecurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
 
-  // Data e hora
-  scheduledAt     DateTime
-  endAt           DateTime
+  confirmedAt         DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  cancelReason        String?
+  cancelledBy         String? // CLIENT | STAFF
+  reminderSentAt      DateTime?
+  returnMessageSentAt DateTime?
 
-  // Status
-  status          AppointmentStatus @default(PENDING)
+  orderId String? @unique
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
-  // Observações
-  notes           String?
+  services AppointmentService[]
+  survey   SatisfactionSurvey?
 
-  // Cancelamento
-  cancelledAt     DateTime?
-  cancelReason    String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
-  // Google Calendar
-  googleEventId   String?
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
-
-  @@index([tenantId, scheduledAt])
-  @@index([professionalId, scheduledAt])
+  @@index([tenantId, startAt])
+  @@index([professionalId, startAt])
+  @@index([clientId, startAt])
   @@map("appointments")
 }
 
-enum AppointmentStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-  NO_SHOW
+model AppointmentService {
+  id              String      @id @default(uuid())
+  appointmentId   String
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  serviceId       String
+  service         Service     @relation(fields: [serviceId], references: [id])
+  price           Decimal     @db.Decimal(10, 2)
+  durationMinutes Int
+  order           Int         @default(0)
+
+  @@index([appointmentId])
+  @@map("appointment_services")
 }
 
-// ========== CAIXA ==========
-
-model CashierSession {
-  id              String    @id @default(uuid())
-  tenantId        String
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
-
-  // Responsável
-  userId          String
-  user            User      @relation(fields: [userId], references: [id])
-
-  // Abertura/Fechamento
-  openedAt        DateTime  @default(now())
-  closedAt        DateTime?
-
-  // Saldos
-  initialBalance  Decimal   @default(0) @db.Decimal(10, 2)
-  finalBalance    Decimal?  @db.Decimal(10, 2)
-
-  // Status
-  status          CashierStatus @default(OPEN)
-
-  // Transações
-  transactions    Transaction[]
-
-  @@index([tenantId, openedAt])
-  @@map("cashier_sessions")
+enum RecurrenceFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
 }
 
-enum CashierStatus {
+model AppointmentRecurrence {
+  id          String              @id @default(uuid())
+  tenantId    String
+  frequency   RecurrenceFrequency
+  interval    Int                 @default(1)
+  startsOn    DateTime            @db.Date
+  endsOn      DateTime?           @db.Date
+  occurrences Int?
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+
+  appointments Appointment[]
+
+  @@map("appointment_recurrences")
+}
+
+// =====================================================================
+// COMANDAS, PAGAMENTOS E CAIXA
+// =====================================================================
+
+enum OrderStatus {
   OPEN
   CLOSED
+  CANCELLED
 }
 
-model Transaction {
-  id              String          @id @default(uuid())
-  cashierSessionId String
-  cashierSession  CashierSession  @relation(fields: [cashierSessionId], references: [id])
-
-  type            TransactionType
-  amount          Decimal         @db.Decimal(10, 2)
-  paymentMethod   PaymentMethod
-
-  // Relacionamento
-  appointmentId   String?
-  productId       String?
-  product         Product?        @relation(fields: [productId], references: [id])
-
-  description     String?
-
-  createdAt       DateTime        @default(now())
-
-  @@index([cashierSessionId, createdAt])
-  @@map("transactions")
+enum OrderKind {
+  CLIENT // comanda de cliente
+  PROFESSIONAL_CONSUMPTION // comanda de consumo do profissional
 }
 
-enum TransactionType {
-  INCOME          // Entrada
-  EXPENSE         // Saída
-  WITHDRAWAL      // Sangria
+enum DiscountType {
+  PERCENT
+  AMOUNT
+}
+
+model Order {
+  id             String        @id @default(uuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  number         Int
+  kind           OrderKind     @default(CLIENT)
+  status         OrderStatus   @default(OPEN)
+  clientId       String?
+  client         Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+
+  subtotal              Decimal         @default(0) @db.Decimal(12, 2)
+  discountType          DiscountType?
+  discountValue         Decimal         @default(0) @db.Decimal(12, 2)
+  discountAmount        Decimal         @default(0) @db.Decimal(12, 2)
+  total                 Decimal         @default(0) @db.Decimal(12, 2)
+  paidTotal             Decimal         @default(0) @db.Decimal(12, 2)
+  feesTotal             Decimal         @default(0) @db.Decimal(12, 2)
+  /// Se falso, a comanda não entra no caixa (ex.: cortesia)
+  addToCashier          Boolean         @default(true)
+  cashierSessionId      String?
+  cashierSession        CashierSession? @relation(fields: [cashierSessionId], references: [id], onDelete: SetNull)
+  loyaltyPointsEarned   Int             @default(0)
+  loyaltyPointsRedeemed Int             @default(0)
+  notes                 String?
+
+  openedAt    DateTime  @default(now())
+  closedAt    DateTime?
+  cancelledAt DateTime?
+  closedById  String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  appointment         Appointment?
+  items               OrderItem[]
+  payments            Payment[]
+  commissionEntries   CommissionEntry[]
+  stockMovements      StockMovement[]
+  financeEntries      FinanceEntry[]
+  loyaltyTransactions LoyaltyTransaction[]
+  clientPackages      ClientPackage[]
+  survey              SatisfactionSurvey?
+  paymentIntents      PaymentIntent[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, openedAt])
+  @@index([tenantId, status])
+  @@map("orders")
+}
+
+enum OrderItemType {
+  SERVICE
+  PRODUCT
+  PACKAGE
+  CUSTOM
+}
+
+model OrderItem {
+  id                  String             @id @default(uuid())
+  orderId             String
+  order               Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type                OrderItemType
+  serviceId           String?
+  service             Service?           @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  productId           String?
+  product             Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
+  packageId           String?
+  package             Package?           @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  /// Item consumido de um pacote já comprado (não cobra)
+  clientPackageItemId String?
+  clientPackageItem   ClientPackageItem? @relation(fields: [clientPackageItemId], references: [id], onDelete: SetNull)
+  professionalId      String?
+  professional        Professional?      @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+
+  description      String
+  quantity         Decimal  @default(1) @db.Decimal(10, 3)
+  unitPrice        Decimal  @db.Decimal(10, 2)
+  discountAmount   Decimal  @default(0) @db.Decimal(10, 2)
+  total            Decimal  @db.Decimal(12, 2)
+  commissionPct    Decimal? @db.Decimal(5, 2)
+  commissionAmount Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt        DateTime @default(now())
+
+  commissionEntry CommissionEntry?
+
+  @@index([orderId])
+  @@map("order_items")
 }
 
 enum PaymentMethod {
@@ -285,56 +660,741 @@ enum PaymentMethod {
   PIX
   CREDIT_CARD
   DEBIT_CARD
+  TRANSFER
+  ONLINE
+  LOYALTY_POINTS
+  PACKAGE
+  OTHER
 }
 
-// ========== PRODUTOS ==========
+model Payment {
+  id           String        @id @default(uuid())
+  orderId      String
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method       PaymentMethod
+  amount       Decimal       @db.Decimal(12, 2)
+  installments Int           @default(1)
+  feePct       Decimal       @default(0) @db.Decimal(5, 2)
+  feeAmount    Decimal       @default(0) @db.Decimal(12, 2)
+  netAmount    Decimal       @db.Decimal(12, 2)
+  reference    String?
+  createdAt    DateTime      @default(now())
+
+  cashMovement CashMovement?
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+/// Taxas por forma de pagamento (ex.: cartão de crédito 3,5%, por parcela)
+model PaymentMethodConfig {
+  id              String        @id @default(uuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  method          PaymentMethod
+  label           String?
+  feePct          Decimal       @default(0) @db.Decimal(5, 2)
+  /// Taxas por nº de parcelas: {"2": 4.5, "3": 5.2}
+  installmentFees Json?
+  maxInstallments Int           @default(1)
+  isActive        Boolean       @default(true)
+
+  @@unique([tenantId, method])
+  @@map("payment_method_configs")
+}
+
+enum CashierStatus {
+  OPEN
+  CLOSED
+}
+
+model CashierSession {
+  id              String        @id @default(uuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  openedById      String
+  closedById      String?
+  status          CashierStatus @default(OPEN)
+  openedAt        DateTime      @default(now())
+  closedAt        DateTime?
+  openingBalance  Decimal       @default(0) @db.Decimal(12, 2)
+  expectedBalance Decimal?      @db.Decimal(12, 2) // calculado no fechamento (dinheiro)
+  closingBalance  Decimal?      @db.Decimal(12, 2) // contado
+  difference      Decimal?      @db.Decimal(12, 2)
+  notes           String?
+
+  orders    Order[]
+  movements CashMovement[]
+
+  @@index([tenantId, openedAt])
+  @@map("cashier_sessions")
+}
+
+enum CashMovementType {
+  SALE // recebimento de comanda
+  INCOME // outra entrada
+  EXPENSE // saída/despesa
+  WITHDRAWAL // sangria
+  SUPPLY // suprimento
+}
+
+model CashMovement {
+  id               String           @id @default(uuid())
+  tenantId         String
+  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cashierSessionId String
+  cashierSession   CashierSession   @relation(fields: [cashierSessionId], references: [id], onDelete: Cascade)
+  type             CashMovementType
+  method           PaymentMethod    @default(CASH)
+  amount           Decimal          @db.Decimal(12, 2)
+  description      String?
+  paymentId        String?          @unique
+  payment          Payment?         @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  financeEntryId   String?
+  createdById      String?
+  createdAt        DateTime         @default(now())
+
+  @@index([cashierSessionId, createdAt])
+  @@map("cash_movements")
+}
+
+// =====================================================================
+// FINANCEIRO (CONTAS A PAGAR / RECEBER)
+// =====================================================================
+
+enum FinanceType {
+  INCOME
+  EXPENSE
+}
+
+enum FinanceStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model FinanceCategory {
+  id       String         @id @default(uuid())
+  tenantId String
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name     String
+  type     FinanceType
+  isSystem Boolean        @default(false)
+  entries  FinanceEntry[]
+
+  @@map("finance_categories")
+}
+
+model FinanceEntry {
+  id           String           @id @default(uuid())
+  tenantId     String
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type         FinanceType
+  status       FinanceStatus    @default(PENDING)
+  categoryId   String?
+  category     FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  description  String
+  amount       Decimal          @db.Decimal(12, 2)
+  dueDate      DateTime         @db.Date
+  paidAt       DateTime?
+  paidAmount   Decimal?         @db.Decimal(12, 2)
+  method       PaymentMethod?
+  supplier     String?
+  notes        String?
+  orderId      String?
+  order        Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  /// Parcelas/recorrência: agrupa lançamentos gerados juntos
+  groupId      String?
+  installment  Int?
+  installments Int?
+  createdById  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([tenantId, dueDate])
+  @@index([tenantId, status])
+  @@map("finance_entries")
+}
+
+// =====================================================================
+// PRODUTOS E ESTOQUE
+// =====================================================================
+
+model ProductCategory {
+  id       String    @id @default(uuid())
+  tenantId String
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name     String
+  products Product[]
+
+  @@map("product_categories")
+}
 
 model Product {
-  id              String    @id @default(uuid())
-  tenantId        String
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  id             String           @id @default(uuid())
+  tenantId       String
+  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoryId     String?
+  category       ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name           String
+  description    String?
+  sku            String?
+  barcode        String?
+  brand          String?
+  unit           String           @default("un")
+  costPrice      Decimal          @default(0) @db.Decimal(10, 2)
+  salePrice      Decimal          @db.Decimal(10, 2)
+  stock          Decimal          @default(0) @db.Decimal(10, 3)
+  minStock       Decimal          @default(0) @db.Decimal(10, 3)
+  expiresAt      DateTime?        @db.Date
+  commissionPct  Decimal?         @db.Decimal(5, 2)
+  forSale        Boolean          @default(true) // vendável ao cliente
+  forInternalUse Boolean          @default(false) // uso interno (pomadas, lâminas)
+  imageUrl       String?
+  loyaltyPoints  Int?
 
-  name            String
-  description     String?
-  price           Decimal   @db.Decimal(10, 2)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  // Estoque
-  stock           Int       @default(0)
-  minStock        Int       @default(0)
-
-  isActive        Boolean   @default(true)
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
-
-  transactions    Transaction[]
+  movements          StockMovement[]
+  orderItems         OrderItem[]
+  packageItems       PackageItem[]
+  clientPackageItems ClientPackageItem[]
+  rewards            LoyaltyReward[]
 
   @@index([tenantId])
   @@map("products")
 }
 
-// ========== AUDITORIA ==========
+enum StockMovementType {
+  IN // entrada (compra)
+  OUT // saída manual
+  SALE // venda em comanda
+  USE // uso interno
+  LOSS // perda/vencimento
+  ADJUST // ajuste de inventário
+  RETURN // devolução
+}
+
+model StockMovement {
+  id           String            @id @default(uuid())
+  tenantId     String
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type         StockMovementType
+  quantity     Decimal           @db.Decimal(10, 3) // positivo entra, negativo sai
+  unitCost     Decimal?          @db.Decimal(10, 2)
+  balanceAfter Decimal           @db.Decimal(10, 3)
+  reason       String?
+  orderId      String?
+  order        Order?            @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdById  String?
+  createdAt    DateTime          @default(now())
+
+  @@index([productId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("stock_movements")
+}
+
+// =====================================================================
+// COMISSÕES, VALES E PAGAMENTO DE PROFISSIONAIS
+// =====================================================================
+
+enum CommissionStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model CommissionEntry {
+  id             String            @id @default(uuid())
+  tenantId       String
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   Professional      @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  orderId        String
+  order          Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItemId    String            @unique
+  orderItem      OrderItem         @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  baseAmount     Decimal           @db.Decimal(12, 2)
+  pct            Decimal           @db.Decimal(5, 2)
+  amount         Decimal           @db.Decimal(12, 2)
+  status         CommissionStatus  @default(PENDING)
+  payoutId       String?
+  payout         CommissionPayout? @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  referenceDate  DateTime          @db.Date
+  createdAt      DateTime          @default(now())
+
+  @@index([tenantId, professionalId, referenceDate])
+  @@map("commission_entries")
+}
+
+enum AdvanceStatus {
+  OPEN
+  SETTLED
+  CANCELLED
+}
+
+/// Vale / adiantamento ao profissional
+model ProfessionalAdvance {
+  id             String            @id @default(uuid())
+  tenantId       String
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   Professional      @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  amount         Decimal           @db.Decimal(12, 2)
+  description    String?
+  date           DateTime          @db.Date
+  status         AdvanceStatus     @default(OPEN)
+  payoutId       String?
+  payout         CommissionPayout? @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  createdById    String?
+  createdAt      DateTime          @default(now())
+
+  @@index([tenantId, professionalId])
+  @@map("professional_advances")
+}
+
+/// Fechamento de comissões de um período (gera o valor a pagar ao profissional)
+model CommissionPayout {
+  id               String         @id @default(uuid())
+  tenantId         String
+  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  professionalId   String
+  professional     Professional   @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  periodStart      DateTime       @db.Date
+  periodEnd        DateTime       @db.Date
+  commissionsTotal Decimal        @db.Decimal(12, 2)
+  advancesTotal    Decimal        @default(0) @db.Decimal(12, 2)
+  consumptionTotal Decimal        @default(0) @db.Decimal(12, 2)
+  netAmount        Decimal        @db.Decimal(12, 2)
+  paidAt           DateTime?
+  method           PaymentMethod?
+  notes            String?
+  createdById      String?
+  createdAt        DateTime       @default(now())
+
+  entries  CommissionEntry[]
+  advances ProfessionalAdvance[]
+
+  @@index([tenantId, professionalId])
+  @@map("commission_payouts")
+}
+
+// =====================================================================
+// FIDELIDADE, PACOTES E CLUBE DE CLIENTES
+// =====================================================================
+
+model LoyaltyProgram {
+  id                String   @id @default(uuid())
+  tenantId          String   @unique
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  isActive          Boolean  @default(false)
+  name              String   @default("Programa de Fidelidade")
+  /// Pontos por R$ 1,00 gasto (ex.: 1 = 1 ponto por real)
+  pointsPerCurrency Decimal  @default(1) @db.Decimal(8, 2)
+  includeProducts   Boolean  @default(true)
+  pointsExpireDays  Int?
+  description       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  rewards LoyaltyReward[]
+
+  @@map("loyalty_programs")
+}
+
+model LoyaltyReward {
+  id             String         @id @default(uuid())
+  programId      String
+  program        LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name           String
+  pointsCost     Int
+  serviceId      String?
+  service        Service?       @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  productId      String?
+  product        Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  discountAmount Decimal?       @db.Decimal(10, 2)
+  isActive       Boolean        @default(true)
+
+  transactions LoyaltyTransaction[]
+
+  @@map("loyalty_rewards")
+}
+
+enum LoyaltyTxType {
+  EARN
+  REDEEM
+  ADJUST
+  EXPIRE
+}
+
+model LoyaltyTransaction {
+  id           String         @id @default(uuid())
+  tenantId     String
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId     String
+  client       Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type         LoyaltyTxType
+  points       Int // positivo ganha, negativo resgata
+  balanceAfter Int
+  description  String?
+  orderId      String?
+  order        Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  rewardId     String?
+  reward       LoyaltyReward? @relation(fields: [rewardId], references: [id], onDelete: SetNull)
+  status       String         @default("DONE") // REQUESTED (resgate pedido pelo app) | DONE
+  createdAt    DateTime       @default(now())
+
+  @@index([clientId, createdAt])
+  @@map("loyalty_transactions")
+}
+
+model Package {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  price        Decimal  @db.Decimal(10, 2)
+  validityDays Int?
+  isActive     Boolean  @default(true)
+  sellOnline   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items          PackageItem[]
+  clientPackages ClientPackage[]
+  orderItems     OrderItem[]
+
+  @@map("packages")
+}
+
+model PackageItem {
+  id        String   @id @default(uuid())
+  packageId String
+  package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+
+  @@map("package_items")
+}
+
+model ClientPackage {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  packageId   String
+  package     Package   @relation(fields: [packageId], references: [id])
+  orderId     String?
+  order       Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  pricePaid   Decimal   @db.Decimal(10, 2)
+  purchasedAt DateTime  @default(now())
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+
+  items ClientPackageItem[]
+
+  @@index([clientId])
+  @@map("client_packages")
+}
+
+model ClientPackageItem {
+  id              String        @id @default(uuid())
+  clientPackageId String
+  clientPackage   ClientPackage @relation(fields: [clientPackageId], references: [id], onDelete: Cascade)
+  serviceId       String?
+  service         Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  productId       String?
+  product         Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  totalQty        Int
+  usedQty         Int           @default(0)
+
+  orderItems OrderItem[]
+
+  @@map("client_package_items")
+}
+
+/// Clube de clientes: desconto automático para membros
+model ClientClub {
+  id                String   @id @default(uuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name              String
+  description       String?
+  discountPct       Decimal  @default(0) @db.Decimal(5, 2)
+  appliesToServices Boolean  @default(true)
+  appliesToProducts Boolean  @default(false)
+  monthlyFee        Decimal? @db.Decimal(10, 2)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+
+  clients Client[]
+
+  @@map("client_clubs")
+}
+
+// =====================================================================
+// COMUNICAÇÃO: LEMBRETES, CAMPANHAS, RETORNO, LISTA DE ESPERA, PESQUISA
+// =====================================================================
+
+enum MessageChannel {
+  WHATSAPP
+  EMAIL
+  PUSH
+  INAPP
+}
+
+enum MessageKind {
+  CONFIRMATION
+  REMINDER
+  CANCELLATION
+  RETURN
+  BIRTHDAY
+  CAMPAIGN
+  WAITLIST
+  SURVEY
+  LOYALTY
+  OTHER
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model MessageLog {
+  id            String         @id @default(uuid())
+  tenantId      String
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId      String?
+  client        Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  channel       MessageChannel
+  kind          MessageKind
+  status        MessageStatus  @default(PENDING)
+  recipient     String // telefone ou e-mail
+  subject       String?
+  content       String
+  appointmentId String?
+  campaignId    String?
+  campaign      Campaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  externalId    String?
+  error         String?
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  createdAt     DateTime       @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([clientId])
+  @@map("message_logs")
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELLED
+}
+
+model Campaign {
+  id              String           @id @default(uuid())
+  tenantId        String
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title           String
+  content         String
+  channels        MessageChannel[]
+  /// Filtro de público: {"all":true} | {"tags":[],"clubId":"","lastVisitDaysGt":30,"birthdayMonth":5}
+  audience        Json?
+  status          CampaignStatus   @default(DRAFT)
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  totalRecipients Int              @default(0)
+  totalSent       Int              @default(0)
+  totalRead       Int              @default(0)
+  createdById     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  recipients CampaignRecipient[]
+  messages   MessageLog[]
+
+  @@map("campaigns")
+}
+
+model CampaignRecipient {
+  id          String    @id @default(uuid())
+  campaignId  String
+  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  error       String?
+
+  @@unique([campaignId, clientId])
+  @@map("campaign_recipients")
+}
+
+/// Mensagem de retorno automática: X dias após o serviço
+model ReturnRule {
+  id        String           @id @default(uuid())
+  tenantId  String
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  serviceId String?
+  service   Service?         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  daysAfter Int
+  message   String
+  channels  MessageChannel[]
+  isActive  Boolean          @default(true)
+
+  @@map("return_rules")
+}
+
+enum WaitlistStatus {
+  WAITING
+  NOTIFIED
+  BOOKED
+  CANCELLED
+  EXPIRED
+}
+
+model WaitlistEntry {
+  id             String         @id @default(uuid())
+  tenantId       String
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  professionalId String?
+  professional   Professional?  @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  serviceId      String?
+  service        Service?       @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  date           DateTime       @db.Date
+  periodStart    String? // "09:00"
+  periodEnd      String? // "12:00"
+  status         WaitlistStatus @default(WAITING)
+  notifiedAt     DateTime?
+  notes          String?
+  createdAt      DateTime       @default(now())
+
+  @@index([tenantId, date, status])
+  @@map("waitlist_entries")
+}
+
+model SatisfactionSurvey {
+  id             String        @id @default(uuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId       String?
+  client         Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  appointmentId  String?       @unique
+  appointment    Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  orderId        String?       @unique
+  order          Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  token          String        @unique
+  rating         Int? // 1..5
+  comment        String?
+  sentAt         DateTime?
+  answeredAt     DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([tenantId, createdAt])
+  @@map("satisfaction_surveys")
+}
+
+// =====================================================================
+// PAGAMENTO ONLINE E ASSINATURA DO PLANO
+// =====================================================================
+
+enum PaymentIntentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+model PaymentIntent {
+  id            String              @id @default(uuid())
+  tenantId      String
+  orderId       String?
+  order         Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  appointmentId String?
+  provider      String              @default("CREATIVEPAY")
+  externalId    String?
+  checkoutUrl   String?
+  amount        Decimal             @db.Decimal(12, 2)
+  status        PaymentIntentStatus @default(PENDING)
+  payload       Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([tenantId])
+  @@map("payment_intents")
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+/// Fatura mensal do plano da barbearia
+model Invoice {
+  id          String        @id @default(uuid())
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planCode    PlanCode
+  amount      Decimal       @db.Decimal(10, 2)
+  periodStart DateTime      @db.Date
+  periodEnd   DateTime      @db.Date
+  dueDate     DateTime      @db.Date
+  status      InvoiceStatus @default(OPEN)
+  paidAt      DateTime?
+  checkoutUrl String?
+  externalId  String?
+  createdAt   DateTime      @default(now())
+
+  @@index([tenantId, dueDate])
+  @@map("invoices")
+}
+
+// =====================================================================
+// AUDITORIA
+// =====================================================================
 
 model AuditLog {
-  id              String    @id @default(uuid())
+  id        String   @id @default(uuid())
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
 
-  userId          String?
-  user            User?     @relation(fields: [userId], references: [id])
-
-  action          String    // CREATE, UPDATE, DELETE
-  entity          String    // Nome da entidade
-  entityId        String    // ID da entidade afetada
-
-  before          Json?     // Estado anterior
-  after           Json?     // Estado posterior
-
-  ipAddress       String?
-  userAgent       String?
-
-  createdAt       DateTime  @default(now())
-
-  @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
   @@index([entity, entityId])
   @@map("audit_logs")
 }
