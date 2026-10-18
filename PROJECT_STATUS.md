@@ -31,15 +31,19 @@ Concorrente do AppBarber: gestão completa para barbearias (agenda online, coman
 
 Teste de ponta a ponta (script em scratch) passou: agendamento online → comanda → pagamento → fechamento → estoque/comissão/pontos → reabertura → relatórios → cadastro de nova barbearia → assinatura → recorrência.
 
-## Frontend (web) — 🚧 em construção
+## Frontend (web) — ✅ completo (v1)
 
-- ✅ Fundação: kit de UI, layouts (site, painel com menu por papel, guards), rotas, store, cliente de API com refresh.
-- 🚧 Páginas: site institucional, auth, onboarding, agenda, comandas, caixa, clientes, profissionais, serviços, produtos, financeiro, comissões, relatórios, fidelidade, campanhas, lista de espera, pesquisas, mensagens, configurações, site/agendamento online, plano, perfil, admin, site público, área do cliente.
+- Fundação: kit de UI, layouts (site, painel com menu por papel, guards), rotas, store, cliente de API com refresh.
+- Páginas: site institucional (home, funcionalidades, preços), auth (dono e cliente), onboarding, dashboard, agenda (dia/semana/lista, encaixe, recorrência, bloqueios), comandas e detalhe, caixa, clientes e histórico, profissionais (jornada, folgas, acesso), serviços, produtos/estoque/inventário, financeiro, comissões, relatórios, fidelidade/pacotes/clube, campanhas, lista de espera, pesquisas, mensagens, configurações, site e agendamento online, plano, perfil, admin da plataforma, site público /b/:slug com agendamento online e lista de espera, avaliação e área do cliente.
+- Testado no navegador contra a API: landing, login, dashboard, agenda, comanda a partir do agendamento, agendamento online de ponta a ponta e todas as páginas do painel sem erros de console.
+
+## Produção
+
+Deploy v1 em 18/10/2026: https://connect-barber.creativenext.cloud (app) e https://api-connect-barber.creativenext.cloud/api (API). Demo em /b/barbearia-demo.
 
 ## Próximos passos
 
-1. Concluir e revisar as páginas do frontend; testar os fluxos no navegador.
-2. Deploy no Coolify (resetar o banco de produção para o schema novo).
+1. Testes de uso real com uma barbearia piloto e ajustes de UX.
 3. Configurar CreativePay (aplicação de API + webhook) para a cobrança dos planos.
 4. Verificar domínio no Resend e a instância do WhatsApp para as mensagens.
 5. PWA/instalável no celular; depois app nas lojas.
