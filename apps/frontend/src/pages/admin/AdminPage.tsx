@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { AlertTriangle, ArrowLeft, Building2, CalendarDays, CheckCircle2, CreditCard, DollarSign, ExternalLink, LayoutDashboard, Search, Shield, TrendingUp, Users } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, CalendarDays, CheckCircle2, CreditCard, DollarSign, ExternalLink, LayoutDashboard, Search, TrendingUp, Users } from 'lucide-react';
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Field, Input, PageHeader, PageLoader, Pagination, Section, Select, StatCard, Switch, Table, TBody, TD, TH, THead, TR } from '@/components/ui';
 import { adminApi } from '@/lib/api/admin';
 import { billingApi } from '@/lib/api/billing';
@@ -430,11 +430,8 @@ export default function AdminPage() {
       <header className="sticky top-0 z-30 bg-gray-950 text-white">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
           <Link to="/admin" className="flex items-center gap-2 font-bold">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Shield className="h-4 w-4" />
-            </span>
-            <span className="hidden sm:inline">Connect Barber</span>
-            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">Admin</span>
+            <img src="/logo-dark.png" alt="Connect Barber" className="h-10 w-auto" />
+            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red-300">Admin</span>
           </Link>
           <nav className="flex items-center gap-1">
             {nav.map((n) => (

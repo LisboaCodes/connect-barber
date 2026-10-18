@@ -316,12 +316,12 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
               <Link to="/cliente">Ver meus agendamentos</Link>
             </Button>
           ) : (
-            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left">
+            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-left">
               <div className="flex items-start gap-3">
-                <UserPlus className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+                <UserPlus className="mt-0.5 h-5 w-5 shrink-0 text-red-700" />
                 <div className="flex-1">
-                  <div className="font-semibold text-amber-900">Crie sua conta para acompanhar</div>
-                  <p className="text-sm text-amber-900/80">Veja seus agendamentos, cancele quando precisar e acompanhe seus pontos de fidelidade.</p>
+                  <div className="font-semibold text-red-900">Crie sua conta para acompanhar</div>
+                  <p className="text-sm text-red-900/80">Veja seus agendamentos, cancele quando precisar e acompanhe seus pontos de fidelidade.</p>
                   <Button asChild size="sm" className="mt-3">
                     <Link to="/cliente/cadastro">Criar conta grátis</Link>
                   </Button>
@@ -343,7 +343,7 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
       <ol className="mb-5 flex items-center gap-1">
         {STEPS.map((s, i) => (
           <li key={s.key} className="flex flex-1 flex-col gap-1">
-            <div className={cn('h-1.5 rounded-full', i <= stepIndex ? 'bg-amber-500' : 'bg-gray-200')} />
+            <div className={cn('h-1.5 rounded-full', i <= stepIndex ? 'bg-red-500' : 'bg-gray-200')} />
             <span className={cn('hidden text-[11px] sm:block', i === stepIndex ? 'font-semibold text-gray-900' : 'text-muted-foreground')}>{s.label}</span>
           </li>
         ))}
@@ -367,9 +367,9 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
                       key={s.id}
                       type="button"
                       onClick={() => setServiceIds((ids) => (on ? ids.filter((x) => x !== s.id) : [...ids, s.id]))}
-                      className={cn('flex w-full items-center gap-3 rounded-xl border bg-white p-4 text-left transition-colors', on ? 'border-amber-500 ring-2 ring-amber-500/30' : 'hover:border-gray-300')}
+                      className={cn('flex w-full items-center gap-3 rounded-xl border bg-white p-4 text-left transition-colors', on ? 'border-red-500 ring-2 ring-red-500/30' : 'hover:border-gray-300')}
                     >
-                      <span className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded border', on ? 'border-amber-500 bg-amber-500 text-white' : 'border-gray-300')}>{on && <Check className="h-3.5 w-3.5" />}</span>
+                      <span className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded border', on ? 'border-red-500 bg-red-500 text-white' : 'border-gray-300')}>{on && <Check className="h-3.5 w-3.5" />}</span>
                       <span className="min-w-0 flex-1">
                         <span className="block font-medium">{s.name}</span>
                         {s.description && <span className="block truncate text-xs text-muted-foreground">{s.description}</span>}
@@ -398,7 +398,7 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
               setTime('');
             }}
             avatar={
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-700">
                 <Users className="h-6 w-6" />
               </div>
             }
@@ -444,7 +444,7 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
                     }}
                     className={cn(
                       'flex w-14 shrink-0 flex-col items-center rounded-xl border bg-white py-2 transition-colors',
-                      active ? 'border-amber-500 bg-amber-500 text-white' : 'hover:border-gray-300',
+                      active ? 'border-red-500 bg-red-500 text-white' : 'hover:border-gray-300',
                       closed && 'cursor-not-allowed opacity-40',
                     )}
                   >
@@ -491,7 +491,7 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
                         key={s.time}
                         type="button"
                         onClick={() => pickSlot(s)}
-                        className={cn('h-10 rounded-lg border bg-white text-sm font-medium transition-colors', time === s.time ? 'border-amber-500 bg-amber-500 text-white' : 'hover:border-amber-400')}
+                        className={cn('h-10 rounded-lg border bg-white text-sm font-medium transition-colors', time === s.time ? 'border-red-500 bg-red-500 text-white' : 'hover:border-red-400')}
                       >
                         {s.time}
                       </button>
@@ -504,7 +504,7 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
                   Profissional: <span className="font-medium text-gray-900">{chosenProfessional.name}</span>
                 </p>
               )}
-              <button type="button" className="text-sm font-medium text-amber-700 hover:underline" onClick={() => setWaitlistOpen(true)}>
+              <button type="button" className="text-sm font-medium text-red-700 hover:underline" onClick={() => setWaitlistOpen(true)}>
                 Não encontrou um bom horário? Entre na lista de espera
               </button>
             </div>
@@ -542,7 +542,7 @@ export default function BookingFlow({ shop }: { shop: PublicBarbershop }) {
               </Field>
               <p className="text-sm text-muted-foreground">
                 Já tem conta?{' '}
-                <Link to={loginRedirect} className="font-medium text-amber-700 hover:underline">
+                <Link to={loginRedirect} className="font-medium text-red-700 hover:underline">
                   Entrar
                 </Link>
               </p>
@@ -656,13 +656,13 @@ function Row({ label, value }: { label: string; value: ReactNode }) {
 
 function ProfCard({ active, onClick, avatar, name, subtitle }: { active: boolean; onClick: () => void; avatar: ReactNode; name: string; subtitle?: string }) {
   return (
-    <button type="button" onClick={onClick} className={cn('flex items-center gap-3 rounded-xl border bg-white p-4 text-left transition-colors', active ? 'border-amber-500 ring-2 ring-amber-500/30' : 'hover:border-gray-300')}>
+    <button type="button" onClick={onClick} className={cn('flex items-center gap-3 rounded-xl border bg-white p-4 text-left transition-colors', active ? 'border-red-500 ring-2 ring-red-500/30' : 'hover:border-gray-300')}>
       {avatar}
       <span className="min-w-0 flex-1">
         <span className="block font-semibold">{name}</span>
         {subtitle && <span className="line-clamp-2 block text-xs text-muted-foreground">{subtitle}</span>}
       </span>
-      {active && <CheckCircle2 className="h-5 w-5 shrink-0 text-amber-500" />}
+      {active && <CheckCircle2 className="h-5 w-5 shrink-0 text-red-500" />}
     </button>
   );
 }
@@ -766,7 +766,7 @@ function WaitlistDialog({
                       ['night', 'Noite'],
                     ] as const
                   ).map(([k, l]) => (
-                    <button key={k} type="button" onClick={() => setPeriod(k)} className={cn('rounded-md border py-1.5 text-xs font-medium', period === k ? 'border-amber-500 bg-amber-50 text-amber-800' : 'hover:bg-gray-50')}>
+                    <button key={k} type="button" onClick={() => setPeriod(k)} className={cn('rounded-md border py-1.5 text-xs font-medium', period === k ? 'border-red-500 bg-red-50 text-red-800' : 'hover:bg-gray-50')}>
                       {l}
                     </button>
                   ))}

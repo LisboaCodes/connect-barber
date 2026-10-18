@@ -112,9 +112,8 @@ export default function AppShell() {
   const Sidebar = (
     <div className="flex h-full flex-col bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))]">
       <div className="flex h-16 items-center gap-2 px-5">
-        <Link to="/app" className="flex items-center gap-2 font-bold text-white">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">💈</span>
-          <span className="truncate">Connect Barber</span>
+        <Link to="/app" className="flex items-center">
+          <img src="/logo-dark.png" alt="Connect Barber" className="h-12 w-auto" />
         </Link>
         <button className="ml-auto lg:hidden" onClick={() => setOpen(false)}>
           <X className="h-5 w-5" />
@@ -172,7 +171,7 @@ export default function AppShell() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-accent">
-                  <Avatar src={current?.tenant.logoUrl} name={current?.tenant.name} size="sm" color="#f59e0b" />
+                  <Avatar src={current?.tenant.logoUrl} name={current?.tenant.name} size="sm" color="#e3192c" />
                   <div className="hidden sm:block">
                     <div className="text-sm font-semibold leading-tight">{current?.tenant.name}</div>
                     <div className="text-[11px] text-muted-foreground">{role ? ROLE_LABEL[role] : ''}</div>
@@ -185,7 +184,7 @@ export default function AppShell() {
                   <DropdownMenuLabel>Minhas barbearias</DropdownMenuLabel>
                   {memberships.map((m) => (
                     <DropdownMenuItem key={m.id} onClick={() => authApi.switchTenant(m.tenantId).then(() => navigate('/app'))}>
-                      <Avatar src={m.tenant.logoUrl} name={m.tenant.name} size="sm" color="#f59e0b" />
+                      <Avatar src={m.tenant.logoUrl} name={m.tenant.name} size="sm" color="#e3192c" />
                       <span className="truncate">{m.tenant.name}</span>
                       {m.tenantId === current?.tenantId && <Badge variant="secondary" className="ml-auto">atual</Badge>}
                     </DropdownMenuItem>

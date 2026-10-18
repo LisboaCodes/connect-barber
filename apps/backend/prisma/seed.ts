@@ -50,6 +50,17 @@ async function main() {
       addressDistrict: 'Centro',
       addressCity: 'São Paulo',
       addressState: 'SP',
+      addressZip: '01310-100',
+      coverUrl: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1800&q=80',
+      siteGallery: [
+        'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&q=80',
+        'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=900&q=80',
+        'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=900&q=80',
+        'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=900&q=80',
+        'https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?w=900&q=80',
+      ],
+      siteInstagram: 'barbeariademo',
+      sitePaymentInfo: 'Dinheiro, Pix, cartão de débito e crédito (até 3x sem juros)',
       openingHours: { 0: [], 1: [{ start: '09:00', end: '19:00' }], 2: [{ start: '09:00', end: '19:00' }], 3: [{ start: '09:00', end: '19:00' }], 4: [{ start: '09:00', end: '19:00' }], 5: [{ start: '09:00', end: '20:00' }], 6: [{ start: '09:00', end: '17:00' }] },
       reminderChannels: ['WHATSAPP', 'EMAIL'],
       trialEndsAt: new Date(Date.now() + 30 * 86400000),
@@ -91,11 +102,11 @@ async function main() {
     ]),
     { professionalId: id, weekday: 6, startTime: '09:00', endTime: '17:00' },
   ];
-  const ze = await prisma.professional.create({ data: { tenantId: tenant.id, membershipId: ownerMembership.id, name: 'Zé Barbeiro', phone: '5511999990001', email: 'dono@barbeariademo.com', color: '#f59e0b', serviceCommissionPct: 0, productCommissionPct: 0, bio: 'Fundador. Especialista em cortes clássicos e navalha.' } });
+  const ze = await prisma.professional.create({ data: { tenantId: tenant.id, membershipId: ownerMembership.id, name: 'Zé Barbeiro', phone: '5511999990001', email: 'dono@barbeariademo.com', color: '#e3192c', serviceCommissionPct: 0, productCommissionPct: 0, bio: 'Fundador. Especialista em cortes clássicos e navalha.', avatarUrl: 'https://i.pravatar.cc/300?img=12' } });
   const proUser = await prisma.user.upsert({ where: { email: 'barbeiro@barbeariademo.com' }, update: {}, create: { email: 'barbeiro@barbeariademo.com', name: 'João Silva', phone: '5511999990002', password, emailVerified: true } });
   const proMembership = await prisma.membership.create({ data: { tenantId: tenant.id, userId: proUser.id, role: 'PROFESSIONAL' } });
-  const joao = await prisma.professional.create({ data: { tenantId: tenant.id, membershipId: proMembership.id, name: 'João Silva', phone: '5511999990002', email: 'barbeiro@barbeariademo.com', color: '#3b82f6', serviceCommissionPct: 40, productCommissionPct: 10, bio: 'Degradê, freestyle e barba desenhada.', displayOrder: 1 } });
-  const pedro = await prisma.professional.create({ data: { tenantId: tenant.id, name: 'Pedro Santos', phone: '5511999990003', color: '#10b981', serviceCommissionPct: 45, productCommissionPct: 10, bio: 'Barboterapia e tratamentos.', displayOrder: 2 } });
+  const joao = await prisma.professional.create({ data: { tenantId: tenant.id, membershipId: proMembership.id, name: 'João Silva', phone: '5511999990002', email: 'barbeiro@barbeariademo.com', color: '#3b82f6', serviceCommissionPct: 40, productCommissionPct: 10, bio: 'Degradê, freestyle e barba desenhada.', displayOrder: 1, avatarUrl: 'https://i.pravatar.cc/300?img=33' } });
+  const pedro = await prisma.professional.create({ data: { tenantId: tenant.id, name: 'Pedro Santos', phone: '5511999990003', color: '#10b981', serviceCommissionPct: 45, productCommissionPct: 10, bio: 'Barboterapia e tratamentos.', displayOrder: 2, avatarUrl: 'https://i.pravatar.cc/300?img=52' } });
   await prisma.workSchedule.createMany({ data: [...schedule(ze.id), ...schedule(joao.id), ...schedule(pedro.id)] });
 
   // serviços
@@ -103,12 +114,12 @@ async function main() {
   const catBarba = await prisma.serviceCategory.create({ data: { tenantId: tenant.id, name: 'Barba', displayOrder: 1 } });
   const catCombo = await prisma.serviceCategory.create({ data: { tenantId: tenant.id, name: 'Combos', displayOrder: 2 } });
   const services = await Promise.all([
-    prisma.service.create({ data: { tenantId: tenant.id, categoryId: catCorte.id, name: 'Corte masculino', durationMinutes: 30, price: 45, color: '#f59e0b', returnDays: 25, displayOrder: 0 } }),
-    prisma.service.create({ data: { tenantId: tenant.id, categoryId: catCorte.id, name: 'Corte degradê', durationMinutes: 40, price: 55, color: '#f97316', returnDays: 20, displayOrder: 1 } }),
+    prisma.service.create({ data: { tenantId: tenant.id, categoryId: catCorte.id, name: 'Corte masculino', description: 'Corte clássico ou moderno com acabamento na navalha.', durationMinutes: 30, price: 45, color: '#e3192c', returnDays: 25, displayOrder: 0, imageUrl: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&q=80' } }),
+    prisma.service.create({ data: { tenantId: tenant.id, categoryId: catCorte.id, name: 'Corte degradê', description: 'Fade baixo, médio ou alto, com desenho opcional.', durationMinutes: 40, price: 55, color: '#f97316', returnDays: 20, displayOrder: 1, imageUrl: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=800&q=80' } }),
     prisma.service.create({ data: { tenantId: tenant.id, categoryId: catCorte.id, name: 'Corte infantil', durationMinutes: 30, price: 35, displayOrder: 2 } }),
-    prisma.service.create({ data: { tenantId: tenant.id, categoryId: catBarba.id, name: 'Barba', durationMinutes: 25, price: 35, color: '#3b82f6', displayOrder: 3 } }),
+    prisma.service.create({ data: { tenantId: tenant.id, categoryId: catBarba.id, name: 'Barba', description: 'Modelagem com toalha quente e finalização com óleo.', durationMinutes: 25, price: 35, color: '#3b82f6', displayOrder: 3, imageUrl: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&q=80' } }),
     prisma.service.create({ data: { tenantId: tenant.id, categoryId: catBarba.id, name: 'Barboterapia', durationMinutes: 40, price: 60, displayOrder: 4 } }),
-    prisma.service.create({ data: { tenantId: tenant.id, categoryId: catCombo.id, name: 'Corte + Barba', durationMinutes: 55, price: 75, color: '#8b5cf6', returnDays: 25, displayOrder: 5 } }),
+    prisma.service.create({ data: { tenantId: tenant.id, categoryId: catCombo.id, name: 'Corte + Barba', description: 'O combo completo para sair renovado.', durationMinutes: 55, price: 75, color: '#8b5cf6', returnDays: 25, displayOrder: 5, imageUrl: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=800&q=80' } }),
     prisma.service.create({ data: { tenantId: tenant.id, name: 'Sobrancelha', durationMinutes: 10, price: 15, displayOrder: 6 } }),
     prisma.service.create({ data: { tenantId: tenant.id, name: 'Pigmentação', durationMinutes: 30, price: 50, displayOrder: 7, allowOnlineBooking: false } }),
   ]);

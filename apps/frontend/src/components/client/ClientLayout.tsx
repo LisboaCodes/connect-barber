@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { CalendarDays, ChevronDown, LayoutDashboard, LogOut, Scissors, Store, UserCircle } from 'lucide-react';
+import { CalendarDays, ChevronDown, LayoutDashboard, LogOut, Store, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
@@ -32,11 +32,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">
       <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-4xl items-center gap-4 px-4">
-          <Link to="/cliente" className="flex items-center gap-2 font-bold">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Scissors className="h-4 w-4" />
-            </span>
-            <span className="hidden sm:inline">Connect Barber</span>
+          <Link to="/cliente" className="flex items-center">
+            <img src="/logo.png" alt="Connect Barber" className="h-10 w-auto rounded-lg" />
           </Link>
           <nav className="hidden items-center gap-1 sm:flex">
             {NAV.map((n) => (

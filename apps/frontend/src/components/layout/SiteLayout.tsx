@@ -20,9 +20,8 @@ export default function SiteLayout() {
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2 text-lg font-bold">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">💈</span>
-            Connect Barber
+          <Link to="/" className="flex items-center">
+            <img src="/logo.png" alt="Connect Barber" className="h-10 w-auto rounded-lg" />
           </Link>
           <nav className="ml-4 hidden items-center gap-1 md:flex">
             {links.map((l) => (
@@ -81,9 +80,8 @@ export default function SiteLayout() {
       <footer className="border-t bg-gray-950 text-gray-300">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-4">
           <div className="md:col-span-2">
-            <div className="flex items-center gap-2 text-lg font-bold text-white">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">💈</span>
-              Connect Barber
+            <div className="flex items-center">
+              <img src="/logo-dark.png" alt="Connect Barber" className="h-16 w-auto" />
             </div>
             <p className="mt-3 max-w-md text-sm text-gray-400">Sistema de gestão on-line para barbearias: agenda, comandas, caixa, estoque, comissões, fidelidade e site com agendamento. Uma nova experiência para uma antiga tradição.</p>
           </div>

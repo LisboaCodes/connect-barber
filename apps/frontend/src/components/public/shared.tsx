@@ -57,23 +57,23 @@ export function isOpenNow(openingHours: PublicBarbershop['openingHours']): boole
   return r.some((x) => m >= toMin(x.start) && m < toMin(x.end));
 }
 
-export function OpeningHoursList({ openingHours, className }: { openingHours: PublicBarbershop['openingHours']; className?: string }) {
-  if (!openingHours) return <p className="text-sm text-muted-foreground">Horários não informados.</p>;
+export function OpeningHoursList({ openingHours, className, dark }: { openingHours: PublicBarbershop['openingHours']; className?: string; dark?: boolean }) {
+  if (!openingHours) return <p className={cn('text-sm', dark ? 'text-gray-500' : 'text-muted-foreground')}>Horários não informados.</p>;
   const today = new Date().getDay();
   // Segunda primeiro
   const order = [1, 2, 3, 4, 5, 6, 0];
   return (
-    <ul className={cn('divide-y text-sm', className)}>
+    <ul className={cn('divide-y text-sm', dark ? 'divide-white/10 text-gray-300' : '', className)}>
       {order.map((wd) => {
         const r = dayRanges(openingHours, wd);
         const isToday = wd === today;
         return (
-          <li key={wd} className={cn('flex items-center justify-between py-2', isToday && 'font-semibold')}>
+          <li key={wd} className={cn('flex items-center justify-between py-2', isToday && (dark ? 'font-semibold text-white' : 'font-semibold'))}>
             <span className="flex items-center gap-2">
               {WEEKDAYS[wd]}
-              {isToday && <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium uppercase text-amber-800">hoje</span>}
+              {isToday && <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium uppercase', dark ? 'bg-red-500/20 text-red-300' : 'bg-accent text-red-800')}>hoje</span>}
             </span>
-            <span className={cn(!r?.length && 'text-muted-foreground')}>{r === null ? '—' : r.length ? r.map((x) => `${x.start} – ${x.end}`).join(' · ') : 'Fechado'}</span>
+            <span className={cn(!r?.length && (dark ? 'text-gray-500' : 'text-muted-foreground'))}>{r === null ? '—' : r.length ? r.map((x) => `${x.start} – ${x.end}`).join(' · ') : 'Fechado'}</span>
           </li>
         );
       })}
@@ -103,7 +103,7 @@ export function ShopLogo({ name, logoUrl, className }: { name: string; logoUrl?:
   return logoUrl ? (
     <img src={logoUrl} alt={name} className={cn('rounded-2xl bg-white object-cover', className)} />
   ) : (
-    <div className={cn('flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 font-bold text-gray-900', className)}>{initials}</div>
+    <div className={cn('flex items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-red-700 font-bold text-white', className)}>{initials}</div>
   );
 }
 
@@ -111,7 +111,7 @@ export function PoweredBy({ className }: { className?: string }) {
   return (
     <p className={cn('text-center text-xs text-muted-foreground', className)}>
       Site criado com{' '}
-      <a href="/" className="font-semibold text-amber-600 hover:underline">
+      <a href="/" className="font-semibold text-red-600 hover:underline">
         Connect Barber
       </a>
     </p>
