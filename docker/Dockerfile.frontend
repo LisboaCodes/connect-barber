@@ -8,7 +8,7 @@ COPY package.json package-lock.json turbo.json ./
 COPY apps/frontend/package.json ./apps/frontend/
 COPY packages ./packages/
 
-RUN npm ci --workspace=@connect-barber/frontend --no-audit --no-fund
+RUN npm ci --workspace=@connect-barber/frontend --include=dev --no-audit --no-fund
 
 # Frontend source
 COPY apps/frontend ./apps/frontend/

@@ -1,6 +1,9 @@
 # ---------- Build stage ----------
 FROM node:20-bookworm-slim AS builder
 
+# Coolify passes NODE_ENV=production as a build arg; the build needs dev deps (nest/prisma cli)
+ENV NODE_ENV=development
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
@@ -13,7 +16,7 @@ COPY apps/backend/package.json ./apps/backend/
 COPY packages ./packages/
 
 # Install only the backend workspace deps (dev deps included: nest cli + prisma cli)
-RUN npm ci --workspace=@connect-barber/backend --no-audit --no-fund
+RUN npm ci --workspace=@connect-barber/backend --include=dev --no-audit --no-fund
 
 # Backend source
 COPY apps/backend ./apps/backend/
