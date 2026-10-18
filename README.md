@@ -16,6 +16,11 @@ Sistema de gestão on-line para barbearias (SaaS multi-tenant), no modelo do App
 - Relatórios: dashboard, agendamentos por dia da semana/horário/origem, ocupação, taxa de retorno, ticket médio, financeiro detalhado, movimentações (CSV).
 - Equipe com papéis (dono, gestor, recepção, profissional); o profissional vê só a própria agenda e comissões.
 
+**Pagamentos e autoatendimento**
+- Pagamento online pela conta CreativePay da própria barbearia (Pix com QR code e checkout com cartão): sinal no agendamento online ("pagar agora" ou "pagar na barbearia"), cobrança da comanda pelo painel, pelo totem e pela área do cliente; webhook por barbearia.
+- Maquininha: cobrança enviada ao aparelho via API do Mercado Pago Point, com confirmação automática na comanda.
+- Totem de autoatendimento (`/totem/<slug>` em um tablet): o cliente se identifica pelo celular, faz check-in (o barbeiro recebe aviso e a agenda mostra "chegou"), entra na fila sem hora marcada, paga a comanda (Pix, maquininha ou balcão) e agenda a próxima visita sem precisar de atendente.
+
 **Clientes (site público e área do cliente)**
 - Site da barbearia em `/b/<slug>` com serviços, profissionais, horários, galeria e **agendamento online 24h** (com ou sem cadastro).
 - Área do cliente: meus agendamentos (cancelar dentro do prazo), pontos e prêmios, pacotes, clube.

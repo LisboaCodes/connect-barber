@@ -24,7 +24,8 @@ Concorrente do AppBarber: gestão completa para barbearias (agenda online, coman
 | loyalty | programa de pontos, prêmios, resgate (inclusive pedido pelo cliente), ajuste, ranking, pacotes, clube |
 | engagement | campanhas por público (envio/agendamento/leitura), lista de espera, regras de mensagem de retorno, pesquisa de satisfação, log de mensagens |
 | reports | dashboard, agendamentos (dia da semana/hora/origem/status/profissional/clientes), ocupação, retorno, financeiro, ticket médio, movimentações |
-| public | site da barbearia, disponibilidade e agendamento online (com/sem login), lista de espera, pesquisa, área do cliente (agendamentos, fidelidade, resgate, perfil) |
+| public | site da barbearia, disponibilidade e agendamento online (com/sem login, com pré-pagamento opcional ou obrigatório), lista de espera, pesquisa, área do cliente (agendamentos, fidelidade, resgate, perfil), **totem de autoatendimento** (identificação, check-in, encaixe, pagamento) |
+| payments | CreativePay por barbearia (Pix QR, checkout hospedado, webhook, liquidação em comanda/agendamento), Mercado Pago Point (maquininha), consulta periódica de pendentes |
 | billing | planos, assinatura com checkout CreativePay, faturas, renovação/bloqueio automáticos, pagamento online de comanda, webhook |
 | automation | cron de lembretes, pesquisa, retorno, aniversário, campanhas, expiração de pontos/lista de espera/pacotes, plano |
 | admin | visão geral da plataforma, barbearias, plano/trial/bloqueio, faturas |
