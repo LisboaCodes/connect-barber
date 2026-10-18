@@ -35,7 +35,7 @@ Thumbs.db
 .turbo/
 
 # Prisma
-prisma/migrations/**/migration_lock.toml
+
 
 # Docker
 *.log

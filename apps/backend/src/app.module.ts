@@ -5,6 +5,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 
 // Core Infrastructure
 import { PrismaModule } from './core/infrastructure/database/prisma/prisma.module';
+import { AppController } from './app.controller';
 
 // Modules
 import { AuthModule } from './modules/auth/auth.module';
@@ -45,5 +46,6 @@ import { ReportsModule } from './modules/reports/reports.module';
     NotificationsModule,
     ReportsModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

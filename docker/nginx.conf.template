@@ -1,28 +1,39 @@
 server {
     listen 80;
-    server_name localhost;
+    server_name _;
 
     root /usr/share/nginx/html;
     index index.html;
+
+    # Docker embedded DNS; resolving at request time keeps nginx up even if the backend is down
+    resolver 127.0.0.11 valid=10s ipv6=off;
 
     # Gzip compression
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
-    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript application/json;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript application/json image/svg+xml;
 
-    # Main location
+    # Health check (Coolify / Uptime Kuma)
+    location = /healthz {
+        access_log off;
+        add_header Content-Type text/plain;
+        return 200 "ok";
+    }
+
+    # SPA
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # API proxy
+    # API proxy (BACKEND_URL is substituted by envsubst on container start)
     location /api {
-        proxy_pass http://backend:3000;
+        set $backend "${BACKEND_URL}";
+        proxy_pass $backend;
+        proxy_ssl_server_name on;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

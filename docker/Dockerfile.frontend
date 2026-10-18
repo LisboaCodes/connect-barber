@@ -1,34 +1,40 @@
-# Build stage
-FROM node:20-alpine AS builder
+# ---------- Build stage ----------
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Copy root package files
-COPY package*.json ./
-COPY turbo.json ./
-
-# Copy frontend package files
-COPY apps/frontend/package*.json ./apps/frontend/
+# Root + frontend manifests (npm workspaces)
+COPY package.json package-lock.json turbo.json ./
+COPY apps/frontend/package.json ./apps/frontend/
 COPY packages ./packages/
 
-# Install dependencies
-RUN npm ci
+RUN npm ci --workspace=@connect-barber/frontend --no-audit --no-fund
 
-# Copy frontend source
+# Frontend source
 COPY apps/frontend ./apps/frontend/
 
-# Build frontend
+# Build-time config (Vite inlines VITE_* into the bundle)
+ARG VITE_API_URL=/api
+ARG VITE_GOOGLE_CLIENT_ID=
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 RUN npm run build --workspace=@connect-barber/frontend
 
-# Production stage
-FROM nginx:alpine
+# ---------- Runtime stage ----------
+FROM nginx:1.27-alpine
 
-# Copy built files
+# Where nginx proxies /api to (override at runtime)
+ENV BACKEND_URL=http://backend:3000
+
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+# nginx renders /etc/nginx/templates/*.template -> /etc/nginx/conf.d/*.conf with envsubst on start
+COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 
 EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:80/healthz || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
