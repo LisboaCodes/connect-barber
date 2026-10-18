@@ -1,132 +1,63 @@
-# 💈 Connect Barber SaaS
+# 💈 Connect Barber
 
-Sistema completo de gestão para barbearias - Multi-tenant, escalável e moderno.
+Sistema de gestão on-line para barbearias (SaaS multi-tenant), no modelo do AppBarber: agenda com agendamento online, comandas, caixa, estoque, comissões, fidelidade, comunicação automática e site da barbearia.
 
-## 🚀 Tecnologias
+## O que o sistema faz
 
-### Backend
-- **NestJS** - Framework Node.js robusto
-- **Prisma** - ORM TypeScript-first
-- **PostgreSQL** - Banco de dados relacional
-- **JWT** - Autenticação
-- **Google OAuth** - Login social
-- **Google Calendar API** - Sincronização de agendamentos
-- **Resend** - Serviço de e-mail
-- **Evolution API** - WhatsApp
+**Barbearia (painel web)**
+- Agenda por profissional com jornada por dia da semana, folgas/jornadas específicas, bloqueios, encaixes e agendamentos recorrentes; cores por status; lista de espera avisada automaticamente quando vaga um horário.
+- Comandas geradas pelo agendamento (ou avulsas): serviços, produtos, pacotes, itens avulsos, descontos, várias formas de pagamento com taxas por parcela, pontos de fidelidade como pagamento, fiado (conta a receber), reabertura com estorno completo.
+- Caixa: abertura, vendas, entradas/saídas, sangria, suprimento, fechamento com conferência; histórico.
+- Financeiro: contas a pagar/receber com parcelas, categorias, fluxo de caixa, taxas de cartão.
+- Produtos e estoque: saldo, custo, lucro, mínimo, validade, movimentações, inventário; baixa automática na venda.
+- Comissões por serviço/produto (por profissional ou por item), vales/adiantamentos, comandas de consumo dos profissionais e fechamento por período.
+- Clientes: histórico completo, aniversariantes, tags, importação, clube de clientes (desconto automático), pacotes de sessões, programa de fidelidade por pontos com prêmios e resgate pelo cliente.
+- Comunicação automática por WhatsApp (Evolution API) e e-mail (Resend): confirmação, lembrete, cancelamento, mensagens de retorno por serviço, aniversário, pesquisa de satisfação, campanhas (notícias e promoções) por público com controle de envio/leitura.
+- Relatórios: dashboard, agendamentos por dia da semana/horário/origem, ocupação, taxa de retorno, ticket médio, financeiro detalhado, movimentações (CSV).
+- Equipe com papéis (dono, gestor, recepção, profissional); o profissional vê só a própria agenda e comissões.
 
-### Frontend
-- **React 18** - Biblioteca UI
-- **TypeScript** - Tipagem estática
-- **Vite** - Build tool ultra-rápido
-- **TailwindCSS** - Estilização
-- **Shadcn/UI** - Componentes
-- **React Query** - Server state
-- **Zustand** - Client state
-- **React Hook Form** - Formulários
-- **Recharts** - Gráficos
+**Clientes (site público e área do cliente)**
+- Site da barbearia em `/b/<slug>` com serviços, profissionais, horários, galeria e **agendamento online 24h** (com ou sem cadastro).
+- Área do cliente: meus agendamentos (cancelar dentro do prazo), pontos e prêmios, pacotes, clube.
 
-## 🏗️ Arquitetura
+**Plataforma**
+- Teste grátis de 30 dias sem limitação; planos por número de profissionais (1 / 2–5 / 6–15 / +15) com cobrança via CreativePay; painel superadmin.
+
+## Stack
+
+- **Backend**: NestJS 10, Prisma 5, PostgreSQL 16, JWT (access + refresh), cron (@nestjs/schedule), Swagger em `/api/docs`.
+- **Frontend**: React 18, Vite, TypeScript, TailwindCSS, Radix UI, React Query, Zustand, React Hook Form + Zod, Recharts.
+- **Infra**: Docker (Dockerfiles em `docker/`), Coolify.
+
+## Estrutura
 
 ```
-connect-barber/
-├── apps/
-│   ├── backend/          # API NestJS
-│   └── frontend/         # React App
-├── packages/
-│   ├── shared/           # Código compartilhado
-│   └── database/         # Prisma schema
-├── docker/               # Dockerfiles
-└── docs/                 # Documentação
+apps/backend          API NestJS (src/modules/* = um módulo por domínio; prisma/ = schema, migrations, seed)
+apps/frontend         SPA React (src/pages/{site,auth,app,public,client,admin}, src/components, src/lib/api)
+docker/               Dockerfile.backend, Dockerfile.frontend, nginx.conf.template
+docs/                 arquitetura e modelo de dados
 ```
 
-## 📦 Instalação
+## Rodando localmente
+
+Veja [GETTING_STARTED.md](./GETTING_STARTED.md). Resumo:
 
 ```bash
-# Instalar dependências
 npm install
-
-# Configurar variáveis de ambiente
-cp apps/backend/.env.example apps/backend/.env
-cp apps/frontend/.env.example apps/frontend/.env
-
-# Executar migrations
-npm run db:migrate
-
-# Seed do banco
-npm run db:seed
-
-# Iniciar desenvolvimento
-npm run dev
+docker compose up -d postgres
+cp apps/backend/.env.example apps/backend/.env   # ajuste DATABASE_URL (porta 5432)
+cd apps/backend && npx prisma migrate deploy && SEED_DEMO=true npx ts-node prisma/seed.ts
+npm run dev   # na raiz: API em :3000 e frontend em :5173
 ```
 
-## 🐳 Docker
+Acessos do seed de demonstração: dono `dono@barbeariademo.com`, profissional `barbeiro@barbeariademo.com`, cliente `cliente@example.com` (senha `123456`); superadmin definido por `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
 
-```bash
-# Desenvolvimento
-docker-compose up -d
+## Produção
 
-# Produção
-docker-compose -f docker-compose.prod.yml up -d
-```
+- API: https://api-connect-barber.creativenext.cloud (`/api/health`, `/api/docs`)
+- App: https://connect-barber.creativenext.cloud
+- Deploy: push na `main` + redeploy dos dois apps no Coolify. O container da API roda `prisma migrate deploy` e o seed (idempotente) antes de iniciar.
 
-## 🧪 Testes
+## Licença
 
-```bash
-# Testes unitários
-npm run test
-
-# Testes E2E
-npm run test:e2e
-
-# Coverage
-npm run test:cov
-```
-
-## 📚 Features
-
-- ✅ Multi-tenant (isolamento por barbearia)
-- ✅ Sistema de planos (Free, Pro, Premium)
-- ✅ Autenticação JWT + OAuth Google
-- ✅ Agendamentos com sincronização Google Calendar
-- ✅ Caixa e controle financeiro
-- ✅ Gestão de produtos e estoque
-- ✅ Sistema de comissões
-- ✅ Notificações por e-mail e WhatsApp
-- ✅ Programa de fidelidade
-- ✅ Relatórios e dashboards
-- ✅ Auditoria de ações
-
-## 🔐 Segurança
-
-- Autenticação JWT com refresh tokens
-- RBAC (Role-based access control)
-- Tenant isolation em todas as queries
-- Rate limiting
-- Auditoria de ações sensíveis
-- Soft delete em todas as entidades
-
-## 📖 Documentação
-
-- [Arquitetura](./docs/architecture.md)
-- [Banco de Dados - ER](./docs/database-er.md)
-- [API Spec](./docs/api-spec.yaml)
-
-## 🤝 Contribuindo
-
-1. Fork o projeto
-2. Crie sua feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'feat: Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📝 Licença
-
-Este projeto está sob a licença MIT.
-
-## 👨‍💻 Autor
-
-Desenvolvido por **Lisboa Codes**
-
----
-
-🚀 **Connect Barber** - Transformando a gestão de barbearias
+MIT — Lisboa Codes / Creative Labs.

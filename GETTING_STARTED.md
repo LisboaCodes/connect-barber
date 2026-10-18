@@ -1,276 +1,87 @@
-# 🚀 Getting Started - Connect Barber
+# 🚀 Como rodar o Connect Barber
 
 ## Pré-requisitos
 
-- **Node.js** >= 20.0.0
-- **npm** >= 10.0.0
-- **PostgreSQL** >= 16 (ou Docker)
-- **Git**
+- Node.js 20+ e npm 10+
+- Docker (para o PostgreSQL) ou um PostgreSQL 16 local
 
-## Instalação Rápida
-
-### 1. Clone o repositório
-
-```bash
-git clone https://github.com/LisboaCodes/connect-barber.git
-cd connect-barber
-```
-
-### 2. Instale as dependências
+## 1. Instale as dependências
 
 ```bash
 npm install
 ```
 
-### 3. Configure as variáveis de ambiente
+## 2. Banco de dados
 
-#### Backend
+```bash
+docker compose up -d postgres        # sobe o Postgres em localhost:5432 (postgres/postgres, db connect_barber)
+```
+
+## 3. Variáveis de ambiente
+
+```bash
+cp apps/backend/.env.example apps/backend/.env
+cp apps/frontend/.env.example apps/frontend/.env     # VITE_API_URL=http://localhost:3000/api
+```
+
+As integrações são opcionais em desenvolvimento: sem `RESEND_API_KEY`/`EVOLUTION_*` as mensagens são apenas registradas em `message_logs` com status FAILED; sem `CREATIVE_PAY_*` a assinatura gera a fatura em modo manual.
+
+## 4. Migrations e seed
 
 ```bash
 cd apps/backend
-cp .env.example .env
+npx prisma migrate deploy
+SEED_DEMO=true npx ts-node prisma/seed.ts
 ```
 
-Edite o arquivo `.env` e configure:
+O seed é idempotente: cria/atualiza o superadmin (`ADMIN_EMAIL`/`ADMIN_PASSWORD`, padrão `admin@connectbarber.app` / `admin123`) e, com `SEED_DEMO=true`, a **Barbearia Demo** (`/b/barbearia-demo`) com 3 profissionais, 8 serviços, produtos, 12 clientes, ~200 agendamentos (10 dias passados e 5 futuros), ~100 comandas fechadas, comissões, despesas, fidelidade ativa, clube VIP e um pacote.
 
-```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/connect_barber
-JWT_SECRET=seu-secret-super-seguro-aqui
-JWT_REFRESH_SECRET=seu-refresh-secret-aqui
-```
+| Perfil        | E-mail                      | Senha  |
+|---------------|-----------------------------|--------|
+| Dono          | dono@barbeariademo.com      | 123456 |
+| Profissional  | barbeiro@barbeariademo.com  | 123456 |
+| Cliente       | cliente@example.com         | 123456 |
 
-#### Frontend
+## 5. Rode em desenvolvimento
 
 ```bash
-cd apps/frontend
-cp .env.example .env
-```
-
-Edite o arquivo `.env`:
-
-```env
-VITE_API_URL=http://localhost:3000/api
-```
-
-### 4. Configure o banco de dados
-
-#### Opção A: Usando Docker (Recomendado)
-
-```bash
-# Na raiz do projeto
-docker-compose up -d postgres
-```
-
-#### Opção B: PostgreSQL local
-
-Certifique-se de ter o PostgreSQL rodando e crie o banco:
-
-```sql
-CREATE DATABASE connect_barber;
-```
-
-### 5. Execute as migrations
-
-```bash
-cd apps/backend
-npm run db:migrate
-```
-
-### 6. Seed do banco (dados de exemplo)
-
-```bash
-npm run db:seed
-```
-
-Isso criará:
-- 1 barbearia demo
-- 1 usuário admin
-- 1 barbeiro
-- 1 cliente
-- Serviços e produtos de exemplo
-
-**Credenciais de acesso:**
-- Admin: `admin@barbeariademo.com` / `123456`
-- Barbeiro: `barbeiro@barbeariademo.com` / `123456`
-- Cliente: `cliente@example.com` / `123456`
-
-### 7. Inicie o projeto
-
-#### Desenvolvimento (backend + frontend)
-
-```bash
-# Na raiz do projeto
-npm run dev
-```
-
-Ou individualmente:
-
-```bash
-# Backend (porta 3000)
+npm run dev                                   # API (:3000) + frontend (:5173) via turbo
+# ou separadamente
 npm run dev --workspace=@connect-barber/backend
-
-# Frontend (porta 5173)
 npm run dev --workspace=@connect-barber/frontend
 ```
 
-### 8. Acesse a aplicação
+- Frontend: http://localhost:5173 (site institucional em `/`, painel em `/app`, site da barbearia demo em `/b/barbearia-demo`, área do cliente em `/cliente`, admin em `/admin`)
+- API: http://localhost:3000/api — Swagger em http://localhost:3000/api/docs
 
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:3000/api
-- **Swagger Docs**: http://localhost:3000/api/docs
-- **Prisma Studio**: `npm run db:studio` (abre em http://localhost:5555)
-
-## 🐳 Docker (Produção)
-
-Para rodar todo o stack com Docker:
-
-### 1. Configure as variáveis de ambiente
+## 6. Docker (stack completa)
 
 ```bash
-cp .env.example .env
+cp .env.example .env    # defina senhas/segredos
+docker compose up -d --build
 ```
 
-Edite o `.env` raiz com suas configurações.
+O backend aplica as migrations e o seed ao iniciar. Frontend em http://localhost (nginx) e API em http://localhost:3000/api.
 
-### 2. Suba os containers
-
-```bash
-docker-compose up -d
-```
-
-Isso irá:
-- Criar container PostgreSQL
-- Buildar e subir o backend
-- Buildar e subir o frontend com Nginx
-
-### 3. Execute as migrations
+## Comandos úteis
 
 ```bash
-docker-compose exec backend npx prisma migrate deploy
-```
-
-### 4. (Opcional) Seed do banco
-
-```bash
-docker-compose exec backend npm run db:seed
-```
-
-### 5. Acesse
-
-- **Frontend**: http://localhost
-- **Backend API**: http://localhost:3000/api
-
-## 📚 Próximos Passos
-
-Agora que o projeto está rodando, você pode:
-
-1. **Explorar a API**: Acesse http://localhost:3000/api/docs
-2. **Fazer login**: Use as credenciais do seed
-3. **Testar features**: Criar agendamentos, gerenciar produtos, etc
-4. **Desenvolver**: Siga o plano de implementação nas fases seguintes
-
-## 🛠️ Comandos Úteis
-
-### Backend
-
-```bash
-# Gerar Prisma Client
-npm run db:generate --workspace=@connect-barber/backend
-
-# Criar nova migration
-npm run db:migrate --workspace=@connect-barber/backend
-
-# Deploy migrations (produção)
-npm run db:migrate:deploy --workspace=@connect-barber/backend
-
-# Abrir Prisma Studio
-npm run db:studio --workspace=@connect-barber/backend
-
-# Rodar testes
-npm run test --workspace=@connect-barber/backend
-
-# Build
+# backend
 npm run build --workspace=@connect-barber/backend
-```
+npx prisma studio                      # em apps/backend
+npx prisma migrate dev --name <nome>   # nova migration (dev)
 
-### Frontend
-
-```bash
-# Dev server
-npm run dev --workspace=@connect-barber/frontend
-
-# Build
+# frontend
 npm run build --workspace=@connect-barber/frontend
-
-# Preview build
-npm run preview --workspace=@connect-barber/frontend
-
-# Lint
-npm run lint --workspace=@connect-barber/frontend
+npx tsc --noEmit -p apps/frontend/tsconfig.json
 ```
 
-### Geral
+## Rotinas automáticas (cron)
 
-```bash
-# Rodar tudo em dev
-npm run dev
+Rodam dentro da API (desligue com `DISABLE_CRON=true`): lembretes (a cada 10 min), pesquisa de satisfação (15 min), campanhas agendadas (5 min), mensagens de retorno (10h), aniversariantes (9h), limpeza/renovação de planos/expiração de pontos (3h).
 
-# Build tudo
-npm run build
+## Problemas comuns
 
-# Rodar testes
-npm run test
-
-# Lint tudo
-npm run lint
-
-# Formatar código
-npm run format
-
-# Limpar node_modules
-npm run clean
-```
-
-## 🔧 Troubleshooting
-
-### Porta já em uso
-
-Se a porta 3000 ou 5173 já estiver em uso:
-
-```bash
-# Backend
-PORT=3001 npm run dev --workspace=@connect-barber/backend
-
-# Frontend - edite vite.config.ts
-```
-
-### Erro de conexão com banco
-
-Verifique se:
-1. PostgreSQL está rodando
-2. `DATABASE_URL` está correta no `.env`
-3. Banco de dados existe
-
-### Prisma Client não gerado
-
-```bash
-cd apps/backend
-npx prisma generate
-```
-
-### Migrations pendentes
-
-```bash
-cd apps/backend
-npx prisma migrate dev
-```
-
-## 📞 Suporte
-
-- **Issues**: https://github.com/LisboaCodes/connect-barber/issues
-- **Documentação**: `/docs` folder
-- **Wiki**: Em breve
-
----
-
-**Desenvolvido com ❤️ por Lisboa Codes**
+- **"Abra o caixa antes de fechar comandas"**: comandas só fecham com um caixa aberto (Caixa › Abrir).
+- **Prisma: migration modificada**: o banco foi criado com um schema antigo; em dev, `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` e rode as migrations de novo.
+- **Build do backend**: usa `tsc` (sem webpack) porque `bcrypt` é nativo; `nest build` já está configurado assim.
