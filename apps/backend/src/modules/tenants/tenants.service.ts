@@ -18,7 +18,26 @@ export class TenantsService {
       this.prisma.service.count({ where: { tenantId, isActive: true, deletedAt: null } }),
       this.prisma.client.count({ where: { tenantId, deletedAt: null } }),
     ]);
-    return { ...t, counts: { professionals, services, clients }, plan: this.planInfo(t) };
+    return {
+      ...t,
+      counts: { professionals, services, clients },
+      plan: this.planInfo(t),
+      integrations: {
+        creativePay: !!t.cpApiKey,
+        creativePayLast4: t.cpApiKey ? t.cpApiKey.slice(-4) : null,
+        creativePayWebhookSecret: !!t.cpWebhookSecret,
+        pos: !!t.posAccessToken && !!t.posDeviceId,
+        posDeviceId: t.posDeviceId,
+        kioskToken: t.kioskToken,
+      },
+    };
+  }
+
+  /** Gera (ou renova) o token do totem de autoatendimento */
+  async regenerateKioskToken(tenantId: string) {
+    const kioskToken = randomToken(32);
+    await this.prisma.tenant.update({ where: { id: tenantId }, data: { kioskToken, kioskEnabled: true } });
+    return { kioskToken };
   }
 
   planInfo(t: { planCode: string; planStatus: string; trialEndsAt: Date | null; planRenewsAt: Date | null }) {

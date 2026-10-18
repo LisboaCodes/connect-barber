@@ -431,7 +431,7 @@ export default function AdminPage() {
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
           <Link to="/admin" className="flex items-center gap-2 font-bold">
             <img src="/logo-dark.png" alt="Connect Barber" className="h-10 w-auto" />
-            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red-300">Admin</span>
+            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gold-300">Admin</span>
           </Link>
           <nav className="flex items-center gap-1">
             {nav.map((n) => (

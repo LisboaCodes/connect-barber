@@ -15,7 +15,7 @@ function SectionTitle({ id, icon: Icon, eyebrow, children, action }: { id?: stri
     <div className="mb-6 flex items-end justify-between gap-4">
       <div>
         {eyebrow && (
-          <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-red-400">
+          <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
             <Icon className="h-3.5 w-3.5" /> {eyebrow}
           </div>
         )}
@@ -37,7 +37,7 @@ function ServiceCard({ s, base, booking }: { s: PublicService; base: string; boo
       {s.imageUrl ? (
         <div className="relative h-36 w-full overflow-hidden">
           <img src={s.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-950/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-moss-950/80 to-transparent" />
           <div className="absolute bottom-2 left-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur">{money(s.price)}</div>
         </div>
       ) : null}
@@ -54,7 +54,7 @@ function ServiceCard({ s, base, booking }: { s: PublicService; base: string; boo
             <Clock className="h-3.5 w-3.5" /> {minutes(s.durationMinutes)}
           </span>
           {can ? (
-            <span className="inline-flex items-center gap-1 font-semibold text-red-400 transition-colors group-hover:text-red-300">
+            <span className="inline-flex items-center gap-1 font-semibold text-gold-400 transition-colors group-hover:text-gold-300">
               Agendar <ArrowRight className="h-3.5 w-3.5" />
             </span>
           ) : (
@@ -64,7 +64,7 @@ function ServiceCard({ s, base, booking }: { s: PublicService; base: string; boo
       </div>
     </>
   );
-  const cls = cn('group flex flex-col overflow-hidden text-left transition-all', card, can && 'hover:-translate-y-0.5 hover:border-red-500/50 hover:bg-white/[0.07]');
+  const cls = cn('group flex flex-col overflow-hidden text-left transition-all', card, can && 'hover:-translate-y-0.5 hover:border-gold-500/50 hover:bg-white/[0.07]');
   return can ? (
     <Link to={`${base}/agendar?servico=${s.id}`} className={cls}>
       {inner}
@@ -99,7 +99,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
   const waText = `Olá! Vim pelo site da ${shop.name}.`;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 pb-24 sm:pb-0 selection:bg-red-500/40">
+    <div className="min-h-screen bg-moss-950 text-gray-100 pb-24 sm:pb-0 selection:bg-gold-500/40">
       {/* Barra superior */}
       <div className="absolute inset-x-0 top-0 z-30">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
@@ -121,18 +121,18 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
           {shop.coverUrl ? (
             <img src={shop.coverUrl} alt="" className="h-full w-full object-cover" />
           ) : (
-            <div className="h-full w-full bg-[radial-gradient(ellipse_at_top_left,rgba(227,25,44,0.35),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(255,255,255,0.08),transparent_50%),#0b0b0f]" />
+            <div className="h-full w-full bg-[radial-gradient(ellipse_at_top_left,rgba(201,162,39,0.35),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(255,255,255,0.08),transparent_50%),#0b0b0f]" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-gray-950/70 via-gray-950/60 to-gray-950" />
+          <div className="absolute inset-0 bg-gradient-to-b from-moss-950/70 via-moss-950/60 to-moss-950" />
         </div>
         <div className="relative mx-auto max-w-5xl px-4 pb-10 pt-24 sm:px-6 sm:pb-16 sm:pt-32">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
-            <ShopLogo name={shop.name} logoUrl={shop.logoUrl} className="h-24 w-24 shrink-0 text-3xl shadow-2xl ring-4 ring-gray-950/60 sm:h-32 sm:w-32 sm:text-4xl" />
+            <ShopLogo name={shop.name} logoUrl={shop.logoUrl} className="h-24 w-24 shrink-0 text-3xl shadow-2xl ring-4 ring-moss-950/60 sm:h-32 sm:w-32 sm:text-4xl" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 {openNow !== null && (
-                  <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium backdrop-blur', openNow ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300' : 'border-red-400/40 bg-red-500/15 text-red-300')}>
-                    <span className={cn('h-1.5 w-1.5 rounded-full', openNow ? 'bg-emerald-400' : 'bg-red-400')} />
+                  <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium backdrop-blur', openNow ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300' : 'border-gold-400/40 bg-gold-500/15 text-gold-300')}>
+                    <span className={cn('h-1.5 w-1.5 rounded-full', openNow ? 'bg-emerald-400' : 'bg-gold-400')} />
                     {openNow ? 'Aberto agora' : 'Fechado agora'}
                   </span>
                 )}
@@ -153,7 +153,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
               {shop.description && <p className="mt-3 max-w-2xl text-base text-gray-300 sm:text-lg">{shop.description}</p>}
               <div className="mt-6 flex flex-wrap gap-3">
                 {booking && (
-                  <Button asChild size="xl" className="shadow-[0_10px_30px_-10px_rgba(227,25,44,0.8)]">
+                  <Button asChild size="xl" className="shadow-[0_10px_30px_-10px_rgba(201,162,39,0.7)]">
                     <Link to={`${base}/agendar`}>
                       <CalendarCheck /> Agendar agora
                     </Link>
@@ -180,7 +180,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
                 )}
                 {booking && (
                   <span className="inline-flex items-center gap-1">
-                    <Sparkles className="h-3.5 w-3.5 text-red-400" /> Agendamento online 24h
+                    <Sparkles className="h-3.5 w-3.5 text-gold-400" /> Agendamento online 24h
                   </span>
                 )}
               </div>
@@ -190,7 +190,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
       </header>
 
       {/* Navegação por âncoras */}
-      <nav className="sticky top-0 z-20 border-b border-white/10 bg-gray-950/85 backdrop-blur">
+      <nav className="sticky top-0 z-20 border-b border-white/10 bg-moss-950/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4 py-2 scrollbar-thin sm:px-6">
           {nav.map((n) => (
             <a key={n.id} href={`#${n.id}`} className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium text-gray-400 transition-colors hover:bg-white/10 hover:text-white">
@@ -198,7 +198,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
             </a>
           ))}
           {booking && (
-            <Link to={`${base}/agendar`} className="ml-auto hidden whitespace-nowrap rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-white sm:inline-flex">
+            <Link to={`${base}/agendar`} className="ml-auto hidden whitespace-nowrap rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-moss-950 sm:inline-flex">
               Agendar
             </Link>
           )}
@@ -207,7 +207,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
 
       <main className="mx-auto max-w-5xl space-y-16 px-4 py-12 sm:px-6">
         {!booking && (
-          <div className={cn(card, 'border-red-500/30 bg-red-500/10 p-5 text-sm text-red-100')}>
+          <div className={cn(card, 'border-gold-500/30 bg-gold-500/10 p-5 text-sm text-gold-100')}>
             O agendamento online desta barbearia está indisponível no momento. Entre em contato pelos canais abaixo para marcar seu horário.
             {wa && (
               <div className="mt-3">
@@ -259,16 +259,16 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
                     {p.avatarUrl ? (
                       <img src={p.avatarUrl} alt={p.name} className="h-24 w-24 rounded-full object-cover ring-2 ring-white/10 transition-transform group-hover:scale-105" />
                     ) : (
-                      <div className="flex h-24 w-24 items-center justify-center rounded-full text-2xl font-bold text-white ring-2 ring-white/10" style={{ backgroundColor: p.color ?? '#e3192c' }}>
+                      <div className="flex h-24 w-24 items-center justify-center rounded-full text-2xl font-bold text-white ring-2 ring-white/10" style={{ backgroundColor: p.color ?? '#C9A227' }}>
                         {p.name.split(' ').filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join('')}
                       </div>
                     )}
-                    <span className="absolute -bottom-1 left-1/2 h-2.5 w-10 -translate-x-1/2 rounded-full blur-md" style={{ backgroundColor: p.color ?? '#e3192c', opacity: 0.6 }} />
+                    <span className="absolute -bottom-1 left-1/2 h-2.5 w-10 -translate-x-1/2 rounded-full blur-md" style={{ backgroundColor: p.color ?? '#C9A227', opacity: 0.6 }} />
                   </div>
                   <div className="mt-4 font-semibold text-white">{p.name}</div>
                   {p.bio && <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-gray-400">{p.bio}</p>}
                   {booking && p.acceptsOnlineBooking && (
-                    <Link to={`${base}/agendar?profissional=${p.id}`} className="mt-4 inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:border-red-500/60 hover:bg-red-500/10">
+                    <Link to={`${base}/agendar?profissional=${p.id}`} className="mt-4 inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:border-gold-500/60 hover:bg-gold-500/10">
                       Agendar com {p.name.split(' ')[0]} <ArrowRight className="h-3 w-3" />
                     </Link>
                   )}
@@ -303,7 +303,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {shop.packages.map((p) => (
                 <div key={p.id} className={cn(card, 'relative overflow-hidden p-5')}>
-                  <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-red-500/20 blur-2xl" />
+                  <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gold-500/20 blur-2xl" />
                   <div className="flex items-start justify-between gap-2">
                     <div className="font-semibold text-white">{p.name}</div>
                     <div className="whitespace-nowrap text-lg font-black text-white">{money(p.price)}</div>
@@ -312,7 +312,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
                   <ul className="mt-3 space-y-1 text-sm text-gray-300">
                     {p.items.map((it) => (
                       <li key={it.id} className="flex items-center gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
                         {it.quantity}× {it.service?.name ?? it.product?.name}
                       </li>
                     ))}
@@ -327,10 +327,10 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
 
         {/* Fidelidade */}
         {shop.loyalty && (
-          <section className={cn(card, 'relative overflow-hidden border-red-500/30 p-6 sm:p-8')}>
-            <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-red-500/25 blur-3xl" />
+          <section className={cn(card, 'relative overflow-hidden border-gold-500/30 p-6 sm:p-8')}>
+            <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-gold-500/25 blur-3xl" />
             <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-red-500/20 text-red-300">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gold-500/20 text-gold-300">
                 <Gift className="h-7 w-7" />
               </div>
               <div className="flex-1">
@@ -355,12 +355,12 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
             <div className={cn(card, 'space-y-5 p-5')}>
               {address && (
                 <div className="flex gap-3">
-                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-gold-400" />
                   <div className="text-sm text-gray-200">
                     <div>{address}</div>
                     {shop.address.zip && <div className="text-gray-500">CEP {shop.address.zip}</div>}
                     {maps && (
-                      <a href={maps} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 font-semibold text-red-400 hover:text-red-300">
+                      <a href={maps} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 font-semibold text-gold-400 hover:text-gold-300">
                         Como chegar <ArrowRight className="h-3.5 w-3.5" />
                       </a>
                     )}
@@ -374,12 +374,12 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
               )}
               {shop.phone && shop.phone !== shop.whatsapp && (
                 <a href={`tel:${shop.phone.replace(/\D/g, '')}`} className="flex items-center gap-3 text-sm text-gray-200 hover:text-white">
-                  <Phone className="h-5 w-5 shrink-0 text-red-400" /> {fmtPhone(shop.phone)}
+                  <Phone className="h-5 w-5 shrink-0 text-gold-400" /> {fmtPhone(shop.phone)}
                 </a>
               )}
               {shop.paymentInfo && (
                 <div className="flex gap-3 text-sm">
-                  <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+                  <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-gold-400" />
                   <div>
                     <div className="font-medium text-gray-200">Formas de pagamento</div>
                     <p className="whitespace-pre-line text-gray-400">{shop.paymentInfo}</p>
@@ -404,7 +404,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
             </div>
             <div className={cn(card, 'p-5')}>
               <div className="mb-2 flex items-center gap-2 font-semibold text-white">
-                <Clock className="h-4 w-4 text-red-400" /> Horário de funcionamento
+                <Clock className="h-4 w-4 text-gold-400" /> Horário de funcionamento
               </div>
               <OpeningHoursList openingHours={shop.openingHours} dark />
             </div>
@@ -423,12 +423,12 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
 
         {/* CTA final */}
         {booking && (
-          <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-600 to-red-800 p-8 text-center text-white sm:p-12">
+          <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gold-500 to-gold-700 p-8 text-center text-moss-950 sm:p-12">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.25),transparent_45%)]" />
             <div className="relative">
               <h2 className="text-2xl font-black sm:text-3xl">Pronto para renovar o visual?</h2>
-              <p className="mx-auto mt-2 max-w-md text-white/85">Escolha o serviço, o profissional e o horário. Leva menos de um minuto.</p>
-              <Button asChild size="xl" variant="dark" className="mt-6 bg-gray-950 text-white hover:bg-black">
+              <p className="mx-auto mt-2 max-w-md text-moss-950/80">Escolha o serviço, o profissional e o horário. Leva menos de um minuto.</p>
+              <Button asChild size="xl" variant="dark" className="mt-6 bg-moss-950 text-white hover:bg-black">
                 <Link to={`${base}/agendar`}>
                   <CalendarCheck /> Agendar agora
                 </Link>
@@ -446,7 +446,7 @@ export default function BarbershopSite({ shop }: { shop: PublicBarbershop }) {
       </footer>
 
       {/* CTA fixo no mobile */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-gray-950/90 p-3 backdrop-blur sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-moss-950/90 p-3 backdrop-blur sm:hidden">
         <div className="flex gap-2">
           {booking ? (
             <Button asChild size="lg" className="flex-1">

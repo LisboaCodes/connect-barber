@@ -18,6 +18,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { ProductsModule } from './modules/products/products.module';
 import { ProfessionalsModule } from './modules/professionals/professionals.module';
 import { PublicModule } from './modules/public/public.module';
@@ -40,6 +41,7 @@ import { TenantsModule } from './modules/tenants/tenants.module';
     ClientsModule,
     AppointmentsModule,
     OrdersModule,
+    PaymentsModule,
     CashierModule,
     ProductsModule,
     FinanceModule,

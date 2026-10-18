@@ -10,6 +10,9 @@ export class PublicBookingDto {
   @ApiPropertyOptional({ description: 'Obrigatório se não estiver logado' }) @IsOptional() @IsString() @MinLength(8) phone?: string;
   @ApiPropertyOptional() @IsOptional() @IsEmail() email?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(500) notes?: string;
+  @ApiPropertyOptional({ description: 'ONLINE = pagar agora (CreativePay); COUNTER = pagar no balcão', enum: ['ONLINE', 'COUNTER'] })
+  @IsOptional() @IsString() payment?: 'ONLINE' | 'COUNTER';
+  @ApiPropertyOptional({ description: 'URL de retorno após o checkout' }) @IsOptional() @IsString() returnUrl?: string;
 }
 
 export class PublicWaitlistDto {

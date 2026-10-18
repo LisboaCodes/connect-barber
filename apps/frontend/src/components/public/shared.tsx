@@ -71,7 +71,7 @@ export function OpeningHoursList({ openingHours, className, dark }: { openingHou
           <li key={wd} className={cn('flex items-center justify-between py-2', isToday && (dark ? 'font-semibold text-white' : 'font-semibold'))}>
             <span className="flex items-center gap-2">
               {WEEKDAYS[wd]}
-              {isToday && <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium uppercase', dark ? 'bg-red-500/20 text-red-300' : 'bg-accent text-red-800')}>hoje</span>}
+              {isToday && <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium uppercase', dark ? 'bg-gold-500/20 text-gold-300' : 'bg-accent text-gold-800')}>hoje</span>}
             </span>
             <span className={cn(!r?.length && (dark ? 'text-gray-500' : 'text-muted-foreground'))}>{r === null ? '—' : r.length ? r.map((x) => `${x.start} – ${x.end}`).join(' · ') : 'Fechado'}</span>
           </li>
@@ -103,7 +103,7 @@ export function ShopLogo({ name, logoUrl, className }: { name: string; logoUrl?:
   return logoUrl ? (
     <img src={logoUrl} alt={name} className={cn('rounded-2xl bg-white object-cover', className)} />
   ) : (
-    <div className={cn('flex items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-red-700 font-bold text-white', className)}>{initials}</div>
+    <div className={cn('flex items-center justify-center rounded-2xl bg-gradient-to-br from-gold-500 to-gold-700 font-bold text-white', className)}>{initials}</div>
   );
 }
 
@@ -111,7 +111,7 @@ export function PoweredBy({ className }: { className?: string }) {
   return (
     <p className={cn('text-center text-xs text-muted-foreground', className)}>
       Site criado com{' '}
-      <a href="/" className="font-semibold text-red-600 hover:underline">
+      <a href="/" className="font-semibold text-gold-600 hover:underline">
         Connect Barber
       </a>
     </p>

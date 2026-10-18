@@ -108,6 +108,12 @@ export class OrdersService {
       for (const s of appointment.services) {
         await this.addItem(tenantId, actor, order.id, { type: 'SERVICE', serviceId: s.serviceId, professionalId: appointment.professionalId, unitPrice: Number(s.price) }, tenant);
       }
+      // sinal pago online no agendamento entra como pagamento da comanda
+      const prepaid = Number(appointment.prepaidAmount ?? 0);
+      if (prepaid > 0) {
+        await this.prisma.payment.create({ data: { orderId: order.id, method: 'ONLINE', amount: prepaid, installments: 1, feePct: 0, feeAmount: 0, netAmount: prepaid, reference: `Sinal do agendamento ${appointment.id}` } });
+        await this.recalc(order.id);
+      }
     }
     return this.get(tenantId, order.id);
   }

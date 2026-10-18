@@ -154,6 +154,17 @@ model Tenant {
   autoConfirm       Boolean @default(true) // agendamentos online nascem CONFIRMED
   requirePrepayment Boolean @default(false)
 
+  // Pagamento online (CreativePay da própria barbearia), totem e maquininha
+  onlinePaymentEnabled Boolean @default(false)
+  cpApiKey             String?
+  cpWebhookSecret      String?
+  kioskEnabled         Boolean @default(false)
+  kioskToken           String? @unique
+  posEnabled           Boolean @default(false)
+  posProvider          String? // MERCADOPAGO_POINT
+  posAccessToken       String?
+  posDeviceId          String?
+
   // Lembretes e mensagens automáticas
   reminderEnabled        Boolean @default(true)
   reminderHoursBefore    Int     @default(24)
@@ -454,6 +465,7 @@ enum AppointmentSource {
   CLIENT // área do cliente
   WAITLIST
   RECURRING
+  KIOSK
 }
 
 model Appointment {
@@ -490,6 +502,8 @@ model Appointment {
   cancelledBy         String? // CLIENT | STAFF
   reminderSentAt      DateTime?
   returnMessageSentAt DateTime?
+  checkedInAt         DateTime?
+  prepaidAmount       Decimal   @default(0) @db.Decimal(10, 2)
 
   orderId String? @unique
   order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
@@ -1338,6 +1352,11 @@ model PaymentIntent {
   provider      String              @default("CREATIVEPAY")
   externalId    String?
   checkoutUrl   String?
+  clientId      String?
+  kind          String              @default("HOSTED") // HOSTED | PIX | POS
+  qrCode        String?
+  copyPaste     String?
+  expiresAt     DateTime?
   amount        Decimal             @db.Decimal(12, 2)
   status        PaymentIntentStatus @default(PENDING)
   payload       Json?

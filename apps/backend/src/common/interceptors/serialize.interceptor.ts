@@ -10,7 +10,7 @@ export class SerializeInterceptor implements NestInterceptor {
   }
 }
 
-const HIDDEN_FIELDS = new Set(['password', 'tokenHash', 'googleAccessToken', 'googleRefreshToken']);
+const HIDDEN_FIELDS = new Set(['password', 'tokenHash', 'googleAccessToken', 'googleRefreshToken', 'cpApiKey', 'cpWebhookSecret', 'posAccessToken']);
 
 export function serialize(value: any, depth = 0): any {
   if (value === null || value === undefined || depth > 25) return value;

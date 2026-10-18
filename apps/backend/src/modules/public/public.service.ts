@@ -7,6 +7,8 @@ import { AvailabilityService } from '../appointments/availability.service';
 import { ClientsService } from '../clients/clients.service';
 import { EngagementService } from '../engagement/engagement.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { PaymentsService } from '../payments/payments.service';
+import { MessagingService } from '../messaging/messaging.service';
 import { PublicBookingDto, PublicWaitlistDto } from './public.dto';
 
 @Injectable()
@@ -18,6 +20,8 @@ export class PublicService {
     private clients: ClientsService,
     private engagement: EngagementService,
     private loyalty: LoyaltyService,
+    private payments: PaymentsService,
+    private messaging: MessagingService,
   ) {}
 
   private async tenantBySlug(slug: string) {
@@ -57,6 +61,9 @@ export class PublicService {
       openingHours: t.openingHours,
       timezone: t.timezone,
       onlineBookingEnabled: t.onlineBookingEnabled && !blocked,
+      onlinePaymentEnabled: this.payments.hasCreativePay(t),
+      requirePrepayment: t.requirePrepayment && this.payments.hasCreativePay(t),
+      kioskEnabled: t.kioskEnabled,
       cancelLimitHours: t.cancelLimitHours,
       minAdvanceMin: t.minAdvanceMin,
       maxAdvanceDays: t.maxAdvanceDays,
@@ -97,8 +104,31 @@ export class PublicService {
       const c = await this.clients.findOrCreateByPhone(t.id, { name: clientName, phone: clientPhone, email: clientEmail }, 'SITE');
       clientId = c.id;
     }
-    const r = await this.appointments.create(t.id, null, { professionalId: dto.professionalId, clientId, serviceIds: dto.serviceIds, date: dto.date, time: dto.time, notes: dto.notes }, user ? 'CLIENT' : 'SITE');
-    return { appointment: this.publicAppointment(r.appointment), message: t.autoConfirm ? 'Agendamento confirmado!' : 'Agendamento recebido. Aguarde a confirmação da barbearia.' };
+    const onlinePay = this.payments.hasCreativePay(t);
+    const wantsOnline = dto.payment === 'ONLINE';
+    if (t.requirePrepayment && onlinePay && !wantsOnline) throw new BadRequestException('Esta barbearia exige o pagamento online para confirmar o agendamento');
+    if (wantsOnline && !onlinePay) throw new BadRequestException('Pagamento online indisponível nesta barbearia');
+
+    const r = await this.appointments.create(
+      t.id,
+      null,
+      { professionalId: dto.professionalId, clientId, serviceIds: dto.serviceIds, date: dto.date, time: dto.time, notes: dto.notes, ...(wantsOnline && !t.autoConfirm ? {} : {}), ...(wantsOnline && t.requirePrepayment ? { status: 'SCHEDULED' as const } : {}) },
+      user ? 'CLIENT' : 'SITE',
+    );
+
+    let payment: { intentId: string; checkoutUrl: string | null; amount: number } | null = null;
+    if (wantsOnline) {
+      const client = await this.prisma.client.findUniqueOrThrow({ where: { id: clientId! } });
+      const amount = Number(r.appointment.totalPrice);
+      const returnUrl = dto.returnUrl || `${this.messaging.appUrl()}/b/${t.slug}/agendar?pago=${r.appointment.id}`;
+      const intent = await this.payments.createCharge(t, { kind: 'HOSTED', amount, appointmentId: r.appointment.id, clientId: client.id, description: `Agendamento ${dto.date} ${dto.time}`, returnUrl, customer: client });
+      payment = { intentId: intent.id, checkoutUrl: intent.checkoutUrl, amount };
+    }
+    return {
+      appointment: this.publicAppointment(r.appointment),
+      payment,
+      message: wantsOnline ? 'Agendamento registrado. Conclua o pagamento para garantir seu horário.' : t.autoConfirm ? 'Agendamento confirmado!' : 'Agendamento recebido. Aguarde a confirmação da barbearia.',
+    };
   }
 
   async joinWaitlist(slug: string, user: AuthUser | undefined, dto: PublicWaitlistDto) {

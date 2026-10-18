@@ -171,7 +171,7 @@ export default function AppShell() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-accent">
-                  <Avatar src={current?.tenant.logoUrl} name={current?.tenant.name} size="sm" color="#e3192c" />
+                  <Avatar src={current?.tenant.logoUrl} name={current?.tenant.name} size="sm" color="#C9A227" />
                   <div className="hidden sm:block">
                     <div className="text-sm font-semibold leading-tight">{current?.tenant.name}</div>
                     <div className="text-[11px] text-muted-foreground">{role ? ROLE_LABEL[role] : ''}</div>
@@ -184,7 +184,7 @@ export default function AppShell() {
                   <DropdownMenuLabel>Minhas barbearias</DropdownMenuLabel>
                   {memberships.map((m) => (
                     <DropdownMenuItem key={m.id} onClick={() => authApi.switchTenant(m.tenantId).then(() => navigate('/app'))}>
-                      <Avatar src={m.tenant.logoUrl} name={m.tenant.name} size="sm" color="#e3192c" />
+                      <Avatar src={m.tenant.logoUrl} name={m.tenant.name} size="sm" color="#C9A227" />
                       <span className="truncate">{m.tenant.name}</span>
                       {m.tenantId === current?.tenantId && <Badge variant="secondary" className="ml-auto">atual</Badge>}
                     </DropdownMenuItem>

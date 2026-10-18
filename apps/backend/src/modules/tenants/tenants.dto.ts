@@ -57,6 +57,15 @@ export class UpdateTenantDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() autoConfirm?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() requirePrepayment?: boolean;
 
+  @ApiPropertyOptional({ description: 'Clientes podem pagar online (CreativePay da barbearia)' }) @IsOptional() @IsBoolean() onlinePaymentEnabled?: boolean;
+  @ApiPropertyOptional({ description: 'Chave de API da aplicação no CreativePay' }) @IsOptional() @IsString() cpApiKey?: string | null;
+  @ApiPropertyOptional() @IsOptional() @IsString() cpWebhookSecret?: string | null;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() kioskEnabled?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() posEnabled?: boolean;
+  @ApiPropertyOptional({ description: 'MERCADOPAGO_POINT' }) @IsOptional() @IsString() posProvider?: string | null;
+  @ApiPropertyOptional() @IsOptional() @IsString() posAccessToken?: string | null;
+  @ApiPropertyOptional() @IsOptional() @IsString() posDeviceId?: string | null;
+
   @ApiPropertyOptional() @IsOptional() @IsBoolean() reminderEnabled?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) @Max(168) reminderHoursBefore?: number;
   @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() reminderChannels?: string[];

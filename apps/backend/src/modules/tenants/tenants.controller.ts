@@ -47,6 +47,12 @@ export class TenantsController {
     return this.tenants.removeMember(tenantId, actor, id);
   }
 
+  @Managers()
+  @Post('kiosk-token')
+  kioskToken(@TenantId() tenantId: string) {
+    return this.tenants.regenerateKioskToken(tenantId);
+  }
+
   @Members()
   @Get('payment-methods')
   paymentMethods(@TenantId() tenantId: string) {
