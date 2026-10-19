@@ -208,17 +208,17 @@ export class AuthService {
       data: {
         name: dto.name?.trim(),
         phone: dto.phone !== undefined ? normalizePhone(dto.phone) : undefined,
-        avatarUrl: dto.avatarUrl,
+        avatarUrl: dto.avatarUrl === '' ? null : dto.avatarUrl,
       },
     });
     // mantém o cadastro de profissional em sincronia
-    if (dto.name || dto.phone || dto.avatarUrl) {
+    if (dto.name || dto.phone || dto.avatarUrl !== undefined) {
       const memberships = await this.prisma.membership.findMany({ where: { userId }, include: { professional: true } });
       for (const m of memberships) {
         if (m.professional) {
           await this.prisma.professional.update({
             where: { id: m.professional.id },
-            data: { name: user.name, phone: user.phone, avatarUrl: user.avatarUrl ?? undefined },
+            data: { name: user.name, phone: user.phone, avatarUrl: user.avatarUrl },
           });
         }
       }

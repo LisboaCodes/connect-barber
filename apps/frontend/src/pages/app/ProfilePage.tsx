@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { KeyRound, UserRound } from 'lucide-react';
-import { Avatar, Badge, Button, Field, Input, PageHeader, Section } from '@/components/ui';
+import { Avatar, Badge, Button, Field, ImageUpload, Input, PageHeader, Section } from '@/components/ui';
 import { PasswordInput, maskPhone } from '@/components/auth/AuthLayout';
 import { authApi } from '@/lib/api/auth';
 import { errorMessage } from '@/lib/api/client';
@@ -90,8 +90,8 @@ export default function ProfilePage() {
             <Field label="E-mail">
               <Input value={user?.email ?? ''} disabled />
             </Field>
-            <Field label="URL da foto" error={profile.formState.errors.avatarUrl?.message} hint="Link de uma imagem (https://...)">
-              <Input {...profile.register('avatarUrl')} placeholder="https://..." />
+            <Field label="Foto" error={profile.formState.errors.avatarUrl?.message} className="sm:col-span-2">
+              <Controller control={profile.control} name="avatarUrl" render={({ field }) => <ImageUpload shape="circle" value={field.value} onChange={field.onChange} />} />
             </Field>
           </div>
           <div className="flex justify-end">

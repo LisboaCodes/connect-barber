@@ -16,6 +16,7 @@ import { CommissionsModule } from './modules/commissions/commissions.module';
 import { EngagementModule } from './modules/engagement/engagement.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module';
+import { MediaModule } from './modules/media/media.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
@@ -34,6 +35,7 @@ import { TenantsModule } from './modules/tenants/tenants.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
     PrismaModule,
     MessagingModule,
+    MediaModule,
     AuthModule,
     TenantsModule,
     ProfessionalsModule,

@@ -41,6 +41,7 @@ export interface ProfessionalInput {
   phone?: string;
   email?: string;
   bio?: string;
+  avatarUrl?: string | null;
   color?: string;
   displayOrder?: number;
   showOnSite?: boolean;

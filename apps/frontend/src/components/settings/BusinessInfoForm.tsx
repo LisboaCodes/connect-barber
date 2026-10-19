@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Field, Input, Section, Select, Textarea } from '@/components/ui';
+import { Button, Field, ImageUpload, Input, Section, Select, Textarea } from '@/components/ui';
 import { useUpdateTenant, type Tenant } from '@/lib/api/tenant';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -63,7 +63,7 @@ const toForm = (t: Tenant): FormValues => ({
 
 export function BusinessInfoForm({ tenant }: { tenant: Tenant }) {
   const update = useUpdateTenant('Dados da barbearia salvos');
-  const { register, handleSubmit, reset, setValue, watch, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: toForm(tenant) });
+  const { register, handleSubmit, reset, setValue, watch, control, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: toForm(tenant) });
   useEffect(() => reset(toForm(tenant)), [tenant, reset]);
 
   const lookupCep = async () => {
@@ -107,7 +107,6 @@ export function BusinessInfoForm({ tenant }: { tenant: Tenant }) {
     );
   };
 
-  const logo = watch('logoUrl');
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -131,11 +130,8 @@ export function BusinessInfoForm({ tenant }: { tenant: Tenant }) {
           <Field label="WhatsApp">
             <Input inputMode="tel" {...register('whatsapp')} placeholder="(11) 99999-9999" />
           </Field>
-          <Field label="URL do logotipo" error={formState.errors.logoUrl?.message} className="sm:col-span-2">
-            <div className="flex items-center gap-3">
-              {logo && !formState.errors.logoUrl && <img src={logo} alt="" className="h-9 w-9 rounded-md border object-cover" />}
-              <Input {...register('logoUrl')} placeholder="https://..." />
-            </div>
+          <Field label="Logotipo" error={formState.errors.logoUrl?.message} hint="Quadrado, mín. 200×200. Aparece no painel e no site." className="sm:col-span-2">
+            <Controller control={control} name="logoUrl" render={({ field }) => <ImageUpload shape="square" value={field.value} onChange={field.onChange} />} />
           </Field>
           <Field label="Descrição" className="sm:col-span-2">
             <Textarea rows={3} {...register('description')} placeholder="Barbearia clássica com atendimento personalizado..." />

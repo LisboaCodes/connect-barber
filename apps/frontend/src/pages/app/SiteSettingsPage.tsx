@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowDown, ArrowUp, Copy, ExternalLink, Globe, ImagePlus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Copy, ExternalLink, Globe, Link2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button, EmptyState, Field, Input, PageHeader, PageLoader, Section, Switch, Textarea } from '@/components/ui';
+import { Button, EmptyState, Field, ImageUpload, Input, PageHeader, PageLoader, Section, Switch, Textarea, UploadButton } from '@/components/ui';
 import { SwitchRow } from '@/components/settings/BookingSettingsForm';
 import { errorMessage } from '@/lib/api/client';
 import { useTenant, useUpdateTenant, type Tenant } from '@/lib/api/tenant';
@@ -172,11 +172,11 @@ function SiteForm({ tenant }: { tenant: Tenant }) {
             <div className="px-4 pb-3 pl-24 pt-2 font-semibold">{tenant.name}</div>
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="URL da imagem de capa" error={formState.errors.coverUrl?.message} hint="Recomendado 1600×600">
-              <Input {...register('coverUrl')} placeholder="https://..." />
+            <Field label="Imagem de capa" error={formState.errors.coverUrl?.message} hint="Recomendado 1600×600 (paisagem)">
+              <Controller control={control} name="coverUrl" render={({ field }) => <ImageUpload shape="wide" value={field.value} onChange={field.onChange} />} />
             </Field>
-            <Field label="URL do logotipo" error={formState.errors.logoUrl?.message} hint="Quadrado, mín. 200×200">
-              <Input {...register('logoUrl')} placeholder="https://..." />
+            <Field label="Logotipo" error={formState.errors.logoUrl?.message} hint="Quadrado, mín. 200×200">
+              <Controller control={control} name="logoUrl" render={({ field }) => <ImageUpload shape="circle" value={field.value} onChange={field.onChange} />} />
             </Field>
           </div>
         </Section>
@@ -199,21 +199,29 @@ function SiteForm({ tenant }: { tenant: Tenant }) {
         </Section>
 
         <Section title="Galeria de fotos" description="Fotos de cortes, ambiente e equipe (até 20)">
-          <div className="flex gap-2">
-            <Input
-              value={newImage}
-              onChange={(e) => setNewImage(e.target.value)}
-              placeholder="Cole a URL da imagem"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addImage();
-                }
-              }}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <UploadButton
+              multiple
+              variant="default"
+              disabled={gallery.length >= 20}
+              onUploaded={(urls) => setG([...gallery, ...urls].slice(0, 20))}
             />
-            <Button type="button" variant="outline" onClick={addImage}>
-              <ImagePlus /> Adicionar
-            </Button>
+            <div className="flex flex-1 gap-2">
+              <Input
+                value={newImage}
+                onChange={(e) => setNewImage(e.target.value)}
+                placeholder="ou cole o link de uma imagem"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addImage();
+                  }
+                }}
+              />
+              <Button type="button" variant="outline" onClick={addImage} aria-label="Adicionar por link">
+                <Link2 /> Adicionar
+              </Button>
+            </div>
           </div>
           {gallery.length > 0 ? (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

@@ -1419,3 +1419,18 @@ model AuditLog {
   @@index([entity, entityId])
   @@map("audit_logs")
 }
+
+/// Imagens enviadas pelo painel (logo, capa, galeria, avatares). Guardadas no banco para o backup ser único.
+model MediaFile {
+  id        String   @id @default(uuid())
+  tenantId  String?
+  userId    String?
+  mime      String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("media_files")
+}

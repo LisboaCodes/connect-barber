@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Button, Checkbox, Dialog, DialogContent, DialogFooter, Field, Input, Label, Switch, Textarea } from '@/components/ui';
+import { Button, Checkbox, Dialog, DialogContent, DialogFooter, Field, ImageUpload, Input, Label, Switch, Textarea } from '@/components/ui';
 import { errorMessage } from '@/lib/api/client';
 import { professionalsApi, type Professional, type ProfessionalInput } from '@/lib/api/professionals';
 import { servicesApi } from '@/lib/api/services';
@@ -18,6 +18,7 @@ const schema = z
     phone: z.string().trim(),
     email: z.string().trim().email('E-mail inválido').or(z.literal('')),
     bio: z.string().max(1000),
+    avatarUrl: z.string(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida'),
     displayOrder: z.coerce.number().int().min(0),
     showOnSite: z.boolean(),
@@ -39,6 +40,7 @@ const toForm = (p?: Professional | null, count = 0): FormValues => ({
   phone: p?.phone ?? '',
   email: p?.email ?? '',
   bio: p?.bio ?? '',
+  avatarUrl: p?.avatarUrl ?? '',
   color: p?.color ?? PALETTE[count % PALETTE.length],
   displayOrder: p?.displayOrder ?? count,
   showOnSite: p?.showOnSite ?? true,
@@ -83,6 +85,7 @@ export function ProfessionalFormDialog({
         phone: v.phone || undefined,
         email: v.email || undefined,
         bio: v.bio || undefined,
+        avatarUrl: v.avatarUrl || null,
         color: v.color,
         displayOrder: v.displayOrder,
         showOnSite: v.showOnSite,
@@ -148,6 +151,9 @@ export function ProfessionalFormDialog({
             </Field>
             <Field label="Comissão sobre produtos" error={formState.errors.productCommissionPct?.message}>
               <Input type="number" step="0.5" min={0} max={100} suffix="%" {...register('productCommissionPct')} />
+            </Field>
+            <Field label="Foto" className="sm:col-span-2" hint="Aparece no site de agendamento e na agenda">
+              <Controller control={control} name="avatarUrl" render={({ field }) => <ImageUpload shape="circle" value={field.value} onChange={field.onChange} />} />
             </Field>
             <Field label="Apresentação (bio)" className="sm:col-span-2" hint="Aparece no site de agendamento">
               <Textarea rows={2} {...register('bio')} placeholder="Especialista em degradê e barba..." />

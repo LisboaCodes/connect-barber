@@ -144,6 +144,6 @@ export class UpdateProfileDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @Matches(/^https?:\/\//, { message: 'avatarUrl deve ser uma URL' })
+  @Matches(/^(https?:\/\/|$)/, { message: 'avatarUrl deve ser uma URL' })
   avatarUrl?: string;
 }
