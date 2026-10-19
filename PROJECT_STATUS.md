@@ -1,6 +1,6 @@
 # 📊 Status do Projeto - Connect Barber
 
-**Última atualização:** 18/10/2026
+**Última atualização:** 19/10/2026
 
 ## Objetivo
 
@@ -42,9 +42,18 @@ Teste de ponta a ponta (script em scratch) passou: agendamento online → comand
 
 Deploy v1 em 18/10/2026: https://connect-barber.creativenext.cloud (app) e https://api-connect-barber.creativenext.cloud/api (API). Demo em /b/barbearia-demo.
 
+## 19/10/2026 — cobrança dos planos, admin e revisão mobile
+
+- **CreativePay configurado para os planos**: Aplicação de API "Connect Barber" (id 6) + envs `CREATIVE_PAY_*` na API. O dono clica em **Pagar agora** em Meu plano e abre o checkout (Pix/cartão); sessão de 24h regenerada quando vence (`POST /billing/invoices/:id/checkout`). Webhook assinado (`X-CreativePay-Signature`) trata `order.pending`/`order.completed`/`order.refunded` e avisa a barbearia por e-mail e WhatsApp. Testado em produção (sessão criada, assinatura validada); falta apenas um pagamento real por Pix.
+- **Admin**: aba Faturas (todas as barbearias, filtro por status, gerar/copiar link de pagamento, marcar paga) e card de integrações (CreativePay/Resend/WhatsApp/mensagens 7 dias).
+- **WhatsApp**: envio real pela instância compartilhada testado.
+- **Resend**: domínio `creativenext.cloud` criado na conta; **faltam os registros DNS na Cloudflare** (lista em `SERVIDOR/SERVIDOR.md`). Até lá os e-mails ficam como FAILED em message_logs.
+- **Mobile**: corrigido transbordo horizontal (dashboard e relatórios). Varredura automática (Playwright) de todas as páginas públicas e do painel em desktop e celular sem erro de console ou HTTP; agendamento online de ponta a ponta validado no ambiente local.
+
 ## Próximos passos
 
-1. Testes de uso real com uma barbearia piloto e ajustes de UX.
-3. Configurar CreativePay (aplicação de API + webhook) para a cobrança dos planos.
-4. Verificar domínio no Resend e a instância do WhatsApp para as mensagens.
-5. PWA/instalável no celular; depois app nas lojas.
+1. Adicionar os registros DNS do Resend na Cloudflare e verificar o domínio; testar e-mails (boas-vindas, fatura, lembrete).
+2. Primeiro pagamento real de plano por Pix (Efí) e conferir o webhook.
+3. Testes de uso real com uma barbearia piloto e ajustes de UX.
+4. Upload de imagens (logo/capa/galeria hoje são URLs).
+5. App nas lojas (hoje é PWA instalável).
