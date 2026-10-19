@@ -91,6 +91,11 @@ export class AdminService {
   markInvoicePaid(invoiceId: string) {
     return this.billing.markInvoicePaid(invoiceId);
   }
+
+  async billingStatus() {
+    const test = await this.billing.testConnection();
+    return { creativePay: { configured: this.billing.enabled, ...test } };
+  }
 }
 
 @ApiTags('admin')
@@ -105,6 +110,7 @@ export class AdminController {
   @Get('tenants/:id') tenant(@Param('id') id: string) { return this.admin.getTenant(id); }
   @Patch('tenants/:id') update(@Param('id') id: string, @Body() body: any) { return this.admin.updateTenant(id, body); }
   @Post('invoices/:id/pay') pay(@Param('id') id: string) { return this.admin.markInvoicePaid(id); }
+  @Get('billing/status') billingStatus() { return this.admin.billingStatus(); }
 }
 
 @Module({

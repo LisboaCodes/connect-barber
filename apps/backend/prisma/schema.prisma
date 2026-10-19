@@ -1387,6 +1387,8 @@ model Invoice {
   status      InvoiceStatus @default(OPEN)
   paidAt      DateTime?
   checkoutUrl String?
+  /// validade da sessão de checkout no CreativePay (link regenerado quando expira)
+  checkoutExpiresAt DateTime?
   externalId  String?
   createdAt   DateTime      @default(now())
 

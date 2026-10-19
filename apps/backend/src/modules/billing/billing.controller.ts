@@ -20,6 +20,11 @@ export class BillingController {
     return this.billing.subscribe(tenantId, body.planCode);
   }
 
+  @ApiBearerAuth() @Roles('OWNER') @Post('invoices/:invoiceId/checkout')
+  invoiceCheckout(@TenantId() tenantId: string, @Param('invoiceId') invoiceId: string) {
+    return this.billing.invoiceCheckout(tenantId, invoiceId);
+  }
+
   @ApiBearerAuth() @Managers() @Post('orders/:orderId/checkout')
   orderCheckout(@TenantId() tenantId: string, @Param('orderId') orderId: string, @Body() body: { returnUrl?: string }) {
     return this.billing.createOrderCheckout(tenantId, orderId, body?.returnUrl ?? 'https://connect-barber.creativenext.cloud');

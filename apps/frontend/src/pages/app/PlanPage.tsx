@@ -38,6 +38,16 @@ export default function PlanPage() {
     onError: (e) => toast.error(errorMessage(e, 'Não foi possível gerar a fatura')),
   });
 
+  const pay = useMutation({
+    mutationFn: (invoiceId: string) => billingApi.invoiceCheckout(invoiceId),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['billing'] });
+      if (r.checkoutUrl) window.open(r.checkoutUrl, '_blank', 'noopener');
+      else toast.error('Não foi possível gerar o link de pagamento');
+    },
+    onError: (e) => toast.error(errorMessage(e, 'Não foi possível gerar o link de pagamento')),
+  });
+
   // sincroniza o status do plano no store (libera o painel após pagamento)
   const planStatus = data?.status;
   useEffect(() => {
@@ -139,13 +149,12 @@ export default function PlanPage() {
           <CreditCard className="h-5 w-5 shrink-0 text-muted-foreground" />
           <div className="flex-1 text-sm">
             Fatura {openInvoice.status === 'OVERDUE' ? <strong className="text-red-600">vencida</strong> : 'em aberto'} de <strong>{money(openInvoice.amount)}</strong> com vencimento em {fmtDate(openInvoice.dueDate)}.
-            {!openInvoice.checkoutUrl && <span className="text-muted-foreground"> O pagamento será combinado com nossa equipe.</span>}
+            {!data.onlinePayments && <span className="text-muted-foreground"> O pagamento será combinado com nossa equipe.</span>}
+            {data.onlinePayments && !isOwner && <span className="text-muted-foreground"> Somente o dono da barbearia pode pagar a fatura.</span>}
           </div>
-          {openInvoice.checkoutUrl && (
-            <Button size="sm" asChild>
-              <a href={openInvoice.checkoutUrl} target="_blank" rel="noreferrer">
-                Pagar agora <ExternalLink />
-              </a>
+          {data.onlinePayments && isOwner && (
+            <Button size="sm" onClick={() => pay.mutate(openInvoice.id)} loading={pay.isPending && pay.variables === openInvoice.id}>
+              Pagar agora (Pix ou cartão) <ExternalLink />
             </Button>
           )}
         </div>
@@ -219,11 +228,9 @@ export default function PlanPage() {
                     {inv.paidAt && <div className="mt-0.5 text-xs text-muted-foreground">em {fmtDate(inv.paidAt)}</div>}
                   </TD>
                   <TD className="text-right">
-                    {(inv.status === 'OPEN' || inv.status === 'OVERDUE') && inv.checkoutUrl && (
-                      <Button size="sm" variant="outline" asChild>
-                        <a href={inv.checkoutUrl} target="_blank" rel="noreferrer">
-                          Pagar <ExternalLink />
-                        </a>
+                    {(inv.status === 'OPEN' || inv.status === 'OVERDUE') && data.onlinePayments && isOwner && (
+                      <Button size="sm" variant="outline" onClick={() => pay.mutate(inv.id)} loading={pay.isPending && pay.variables === inv.id}>
+                        Pagar <ExternalLink />
                       </Button>
                     )}
                   </TD>
@@ -234,7 +241,11 @@ export default function PlanPage() {
         )}
       </Section>
 
-      {!data.onlinePayments && <p className="mt-4 text-xs text-muted-foreground">O pagamento on-line ainda não está habilitado: ao assinar, a fatura é gerada e nossa equipe entra em contato para combinar o pagamento.</p>}
+      {!data.onlinePayments ? (
+        <p className="mt-4 text-xs text-muted-foreground">O pagamento on-line ainda não está habilitado: ao assinar, a fatura é gerada e nossa equipe entra em contato para combinar o pagamento.</p>
+      ) : (
+        <p className="mt-4 text-xs text-muted-foreground">Pagamento seguro por Pix ou cartão. O plano é liberado automaticamente assim que o pagamento é confirmado.</p>
+      )}
 
       <ConfirmDialog
         open={!!confirm}

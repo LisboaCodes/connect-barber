@@ -100,6 +100,28 @@ export class MessagingService {
     );
   }
 
+  // ---------- avisos da plataforma para a barbearia (sem log por cliente) ----------
+  /** E-mail da plataforma (fatura, pagamento confirmado). Melhor esforço: nunca lança. */
+  async sendPlatformEmail(to: string | null | undefined, subject: string, text: string) {
+    if (!to) return { ok: false, error: 'sem e-mail' };
+    try {
+      return await this.email.send(to, subject, this.basicHtml(text), text);
+    } catch (e: any) {
+      return { ok: false, error: e?.message };
+    }
+  }
+
+  /** WhatsApp da plataforma para o telefone da barbearia. Melhor esforço: nunca lança. */
+  async sendPlatformWhatsApp(phone: string | null | undefined, text: string) {
+    const digits = (phone ?? '').replace(/\D/g, '');
+    if (!digits) return { ok: false, error: 'sem telefone' };
+    try {
+      return await this.whatsapp.send(digits.startsWith('55') ? digits : `55${digits}`, text);
+    } catch (e: any) {
+      return { ok: false, error: e?.message };
+    }
+  }
+
   appUrl() {
     return (this.config.get<string>('FRONTEND_URL') || 'http://localhost:5173').split(',')[0];
   }
