@@ -21,6 +21,19 @@ server {
         return 200 "ok";
     }
 
+    # PWA metadata and worker must be served as their own files, without SPA fallback or long caching.
+    location = /manifest.webmanifest {
+        try_files $uri =404;
+        default_type application/manifest+json;
+        add_header Cache-Control "no-cache";
+    }
+
+    location = /sw.js {
+        try_files $uri =404;
+        default_type application/javascript;
+        add_header Cache-Control "no-cache";
+    }
+
     # SPA
     location / {
         try_files $uri $uri/ /index.html;
