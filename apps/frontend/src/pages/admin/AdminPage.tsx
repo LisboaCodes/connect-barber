@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { AlertTriangle, ArrowLeft, Building2, CalendarDays, CheckCircle2, CreditCard, DollarSign, ExternalLink, LayoutDashboard, Search, TrendingUp, Users } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, CalendarDays, CheckCircle2, CreditCard, DollarSign, ExternalLink, LayoutDashboard, Link2, Receipt, Search, TrendingUp, Users, XCircle } from 'lucide-react';
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Field, Input, PageHeader, PageLoader, Pagination, Section, Select, StatCard, Switch, Table, TBody, TD, TH, THead, TR } from '@/components/ui';
-import { adminApi } from '@/lib/api/admin';
+import { adminApi, AdminInvoiceRow } from '@/lib/api/admin';
 import { billingApi } from '@/lib/api/billing';
 import { errorMessage } from '@/lib/api/client';
 import { fmtDate, fmtDateTime, fmtPhone, fmtRelative, money, num, ROLE_LABEL, STATUS_COLOR, STATUS_LABEL } from '@/lib/utils/format';
@@ -41,6 +41,7 @@ function Overview() {
         <StatCard label="GMV (30d)" value={money(data.gmvLast30d)} icon={DollarSign} hint="Comandas fechadas" />
         <StatCard label="Faturas em aberto" value={money(data.openInvoices.amount)} icon={CreditCard} hint={`${data.openInvoices.count} fatura(s)`} />
       </div>
+      <Integrations />
       <Section title="Barbearias por status" className="mt-6">
         {data.byStatus.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhuma barbearia cadastrada.</p>
@@ -60,6 +61,169 @@ function Overview() {
           </div>
         )}
       </Section>
+    </div>
+  );
+}
+
+function Integrations() {
+  const { data, isLoading } = useQuery({ queryKey: ['admin-integrations'], queryFn: adminApi.integrations, staleTime: 60_000 });
+  const Item = ({ ok, label, hint }: { ok: boolean; label: string; hint: string }) => (
+    <div className="flex items-start gap-3 rounded-lg border p-3">
+      {ok ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /> : <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />}
+      <div className="min-w-0">
+        <div className="text-sm font-medium">{label}</div>
+        <div className="text-xs text-muted-foreground">{hint}</div>
+      </div>
+    </div>
+  );
+  return (
+    <Section title="Integrações da plataforma" description="Cobrança dos planos e canais de mensagem usados por todas as barbearias." className="mt-6">
+      {isLoading || !data ? (
+        <PageLoader />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Item ok={data.creativePay.configured && data.creativePay.ok} label="CreativePay (planos)" hint={!data.creativePay.configured ? 'Não configurado: faturas pagas manualmente' : data.creativePay.ok ? 'Chave válida, pagamento online ativo' : data.creativePay.error ?? 'Falha ao validar a chave'} />
+          <Item ok={data.email.configured} label="E-mail (Resend)" hint={data.email.configured ? 'Chave configurada' : 'RESEND_API_KEY ausente'} />
+          <Item ok={data.whatsapp.configured} label="WhatsApp (Evolution)" hint={data.whatsapp.configured ? 'Instância configurada' : 'Evolution não configurada'} />
+          <Item ok={data.messagesLast7d.failed === 0} label="Mensagens (7 dias)" hint={`${data.messagesLast7d.sent} enviada(s), ${data.messagesLast7d.failed} falha(s)`} />
+        </div>
+      )}
+    </Section>
+  );
+}
+
+// ---------------- faturas da plataforma ----------------
+const INVOICE_STATUSES = ['OPEN', 'OVERDUE', 'PAID', 'CANCELLED'];
+const invoiceStatusLabel = (s: string) => (s === 'PAID' ? 'Paga' : s === 'CANCELLED' ? 'Cancelada' : STATUS_LABEL[s] ?? s);
+
+function InvoiceList() {
+  const qc = useQueryClient();
+  const [params, setParams] = useSearchParams();
+  const status = params.get('status') ?? 'OPEN';
+  const page = Number(params.get('page') ?? 1);
+  const { name: planName } = usePlanNames();
+  const [payId, setPayId] = useState<string | null>(null);
+  const setParam = (k: string, v: string) => {
+    const next = new URLSearchParams(params);
+    if (v) next.set(k, v);
+    else next.delete(k);
+    if (k !== 'page') next.delete('page');
+    setParams(next, { replace: true });
+  };
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['admin-invoices', status, page],
+    queryFn: () => adminApi.invoices({ status: status || undefined, page }),
+    placeholderData: keepPreviousData,
+  });
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['admin-invoices'] });
+    qc.invalidateQueries({ queryKey: ['admin-overview'] });
+  };
+  const pay = useMutation({
+    mutationFn: (invoiceId: string) => adminApi.payInvoice(invoiceId),
+    onSuccess: () => {
+      setPayId(null);
+      refresh();
+      toast.success('Fatura marcada como paga e plano ativado');
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  const link = useMutation({
+    mutationFn: (invoiceId: string) => adminApi.invoiceCheckout(invoiceId),
+    onSuccess: async (r) => {
+      refresh();
+      try {
+        await navigator.clipboard.writeText(r.checkoutUrl);
+        toast.success('Link de pagamento copiado! Envie para a barbearia.');
+      } catch {
+        window.open(r.checkoutUrl, '_blank', 'noopener');
+        toast.success('Link de pagamento gerado');
+      }
+    },
+    onError: (e) => toast.error(errorMessage(e, 'Não foi possível gerar o link')),
+  });
+  return (
+    <div>
+      <PageHeader title="Faturas" description={data ? `${data.total} fatura(s)` : 'Cobranças dos planos de todas as barbearias.'} />
+      <Card className="mb-4 flex flex-col gap-3 p-4 sm:flex-row">
+        <Select value={status} onChange={(e) => setParam('status', e.target.value)} className="sm:w-56">
+          <option value="">Todos os status</option>
+          {INVOICE_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {invoiceStatusLabel(s)}
+            </option>
+          ))}
+        </Select>
+      </Card>
+      <Card className={cn(isFetching && 'opacity-70')}>
+        {isLoading ? (
+          <PageLoader />
+        ) : !data || data.items.length === 0 ? (
+          <EmptyState icon={Receipt} title="Nenhuma fatura encontrada" className="m-4" />
+        ) : (
+          <Table>
+            <THead>
+              <TR>
+                <TH>Barbearia</TH>
+                <TH>Plano</TH>
+                <TH>Período</TH>
+                <TH>Vencimento</TH>
+                <TH className="text-right">Valor</TH>
+                <TH>Status</TH>
+                <TH />
+              </TR>
+            </THead>
+            <TBody>
+              {data.items.map((inv: AdminInvoiceRow) => (
+                <TR key={inv.id}>
+                  <TD>
+                    <Link to={`/admin/barbearias/${inv.tenant.id}`} className="font-medium hover:text-primary hover:underline">
+                      {inv.tenant.name}
+                    </Link>
+                    <div className="text-xs text-muted-foreground">
+                      {inv.tenant.email ?? 'sem e-mail'} · {fmtPhone(inv.tenant.phone)}
+                    </div>
+                  </TD>
+                  <TD className="whitespace-nowrap">{planName(inv.planCode)}</TD>
+                  <TD className="whitespace-nowrap text-muted-foreground">
+                    {fmtDate(inv.periodStart)} a {fmtDate(inv.periodEnd)}
+                  </TD>
+                  <TD className="whitespace-nowrap">{fmtDate(inv.dueDate)}</TD>
+                  <TD className="text-right font-medium">{money(Number(inv.amount))}</TD>
+                  <TD>
+                    <StatusPill status={inv.status} />
+                    {inv.paidAt && <div className="mt-0.5 text-xs text-muted-foreground">em {fmtDate(inv.paidAt)}</div>}
+                  </TD>
+                  <TD className="text-right">
+                    {(inv.status === 'OPEN' || inv.status === 'OVERDUE') && (
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="outline" onClick={() => link.mutate(inv.id)} loading={link.isPending && link.variables === inv.id} title="Gerar e copiar o link de pagamento (Pix/cartão)">
+                          <Link2 /> Link
+                        </Button>
+                        <Button size="sm" variant="success" onClick={() => setPayId(inv.id)}>
+                          <CheckCircle2 /> Marcar paga
+                        </Button>
+                      </div>
+                    )}
+                  </TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
+        )}
+      </Card>
+      {data && <Pagination className="mt-4" page={data.page} pages={data.pages} total={data.total} onChange={(p) => setParam('page', String(p))} />}
+      <ConfirmDialog
+        open={!!payId}
+        onOpenChange={(o) => !o && setPayId(null)}
+        title="Marcar fatura como paga?"
+        description="Use quando o pagamento foi recebido fora do CreativePay. O plano será ativado e a renovação atualizada para o fim do período."
+        confirmText="Confirmar pagamento"
+        loading={pay.isPending}
+        onConfirm={() => {
+          if (payId) pay.mutate(payId);
+        }}
+      />
     </div>
   );
 }
@@ -227,6 +391,20 @@ function TenantDetail() {
     },
     onError: (e) => toast.error(errorMessage(e)),
   });
+  const link = useMutation({
+    mutationFn: (invoiceId: string) => adminApi.invoiceCheckout(invoiceId),
+    onSuccess: async (r) => {
+      refresh();
+      try {
+        await navigator.clipboard.writeText(r.checkoutUrl);
+        toast.success('Link de pagamento copiado! Envie para a barbearia.');
+      } catch {
+        window.open(r.checkoutUrl, '_blank', 'noopener');
+        toast.success('Link de pagamento gerado');
+      }
+    },
+    onError: (e) => toast.error(errorMessage(e, 'Não foi possível gerar o link')),
+  });
 
   if (isLoading) return <PageLoader />;
   if (isError || !t)
@@ -390,9 +568,14 @@ function TenantDetail() {
                   </TD>
                   <TD className="text-right">
                     {(inv.status === 'OPEN' || inv.status === 'OVERDUE') && (
-                      <Button size="sm" variant="success" onClick={() => setPayId(inv.id)}>
-                        <CheckCircle2 /> Marcar paga
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="outline" onClick={() => link.mutate(inv.id)} loading={link.isPending && link.variables === inv.id} title="Gerar e copiar o link de pagamento (Pix/cartão)">
+                          <Link2 /> Link
+                        </Button>
+                        <Button size="sm" variant="success" onClick={() => setPayId(inv.id)}>
+                          <CheckCircle2 /> Marcar paga
+                        </Button>
+                      </div>
                     )}
                   </TD>
                 </TR>
@@ -424,6 +607,7 @@ export default function AdminPage() {
   const nav = [
     { to: '/admin', label: 'Visão geral', icon: LayoutDashboard, end: true },
     { to: '/admin/barbearias', label: 'Barbearias', icon: Building2, end: false },
+    { to: '/admin/faturas', label: 'Faturas', icon: Receipt, end: false },
   ];
   return (
     <div className="min-h-screen bg-muted/40">
@@ -456,6 +640,7 @@ export default function AdminPage() {
           <Route index element={<Overview />} />
           <Route path="barbearias" element={<TenantList />} />
           <Route path="barbearias/:id" element={<TenantDetail />} />
+          <Route path="faturas" element={<InvoiceList />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>

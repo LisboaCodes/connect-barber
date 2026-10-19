@@ -1,4 +1,4 @@
-import { Body, CanActivate, Controller, ExecutionContext, ForbiddenException, Get, Injectable, Module, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, CanActivate, Controller, ExecutionContext, ForbiddenException, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PlanCode, PlanStatus } from '@prisma/client';
 import { addDays } from 'date-fns';
@@ -6,6 +6,8 @@ import { PrismaService } from '../../core/infrastructure/database/prisma/prisma.
 import { money } from '../../common/utils';
 import { BillingModule } from '../billing/billing.module';
 import { BillingService } from '../billing/billing.service';
+import { MessagingModule } from '../messaging/messaging.module';
+import { MessagingService } from '../messaging/messaging.service';
 import { PLANS } from '../billing/plans';
 
 @Injectable()
@@ -19,7 +21,7 @@ export class SuperAdminGuard implements CanActivate {
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService, private billing: BillingService) {}
+  constructor(private prisma: PrismaService, private billing: BillingService, private messaging: MessagingService) {}
 
   async overview() {
     const [tenants, byStatus, users, appointments30, revenue30, invoicesOpen] = await Promise.all([
@@ -92,9 +94,40 @@ export class AdminService {
     return this.billing.markInvoicePaid(invoiceId);
   }
 
-  async billingStatus() {
+  /** Situação das integrações da plataforma (cobrança, e-mail, WhatsApp) */
+  async integrations() {
     const test = await this.billing.testConnection();
-    return { creativePay: { configured: this.billing.enabled, ...test } };
+    const msg = this.messaging.status;
+    const since = addDays(new Date(), -7);
+    const [sent, failed] = await Promise.all([
+      this.prisma.messageLog.count({ where: { createdAt: { gte: since }, status: 'SENT' } }),
+      this.prisma.messageLog.count({ where: { createdAt: { gte: since }, status: 'FAILED' } }),
+    ]);
+    return {
+      creativePay: { configured: this.billing.enabled, ...test },
+      email: { configured: msg.email },
+      whatsapp: { configured: msg.whatsapp },
+      messagesLast7d: { sent, failed },
+    };
+  }
+
+  /** Faturas de todas as barbearias (cobranças da plataforma) */
+  async listInvoices(q: { status?: string; page?: string; limit?: string }) {
+    const page = Math.max(1, Number(q.page) || 1);
+    const limit = Math.min(100, Number(q.limit) || 30);
+    const where = q.status ? { status: q.status as any } : {};
+    const [items, total] = await Promise.all([
+      this.prisma.invoice.findMany({ where, include: { tenant: { select: { id: true, name: true, slug: true, email: true, phone: true, planStatus: true } } }, orderBy: [{ dueDate: 'desc' }, { createdAt: 'desc' }], skip: (page - 1) * limit, take: limit }),
+      this.prisma.invoice.count({ where }),
+    ]);
+    return { items, total, page, limit, pages: Math.ceil(total / limit) };
+  }
+
+  /** Gera o link de pagamento de uma fatura para o superadmin enviar à barbearia */
+  async invoiceCheckout(invoiceId: string) {
+    const inv = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
+    if (!inv) throw new NotFoundException('Fatura não encontrada');
+    return this.billing.invoiceCheckout(inv.tenantId, invoiceId);
   }
 }
 
@@ -110,11 +143,13 @@ export class AdminController {
   @Get('tenants/:id') tenant(@Param('id') id: string) { return this.admin.getTenant(id); }
   @Patch('tenants/:id') update(@Param('id') id: string, @Body() body: any) { return this.admin.updateTenant(id, body); }
   @Post('invoices/:id/pay') pay(@Param('id') id: string) { return this.admin.markInvoicePaid(id); }
-  @Get('billing/status') billingStatus() { return this.admin.billingStatus(); }
+  @Post('invoices/:id/checkout') invoiceCheckout(@Param('id') id: string) { return this.admin.invoiceCheckout(id); }
+  @Get('invoices') invoices(@Query() q: any) { return this.admin.listInvoices(q); }
+  @Get('integrations') integrations() { return this.admin.integrations(); }
 }
 
 @Module({
-  imports: [BillingModule],
+  imports: [BillingModule, MessagingModule],
   controllers: [AdminController],
   providers: [AdminService, SuperAdminGuard],
 })
