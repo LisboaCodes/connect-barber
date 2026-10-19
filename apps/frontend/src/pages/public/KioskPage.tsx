@@ -12,6 +12,7 @@ import { Spinner } from '@/components/ui';
 
 type Screen = 'idle' | 'phone' | 'register' | 'home' | 'walkin' | 'pay' | 'paying' | 'done';
 const IDLE_MS = 90_000;
+const DONE_MS = 8_000;
 
 const fmtPhoneInput = (d: string) => {
   if (d.length <= 2) return d;
@@ -59,6 +60,13 @@ export default function KioskPage() {
       window.removeEventListener('keydown', bump);
       if (timer.current) window.clearTimeout(timer.current);
     };
+  }, [screen, reset]);
+
+  // Mostra o agradecimento por alguns segundos e libera o totem para o próximo cliente.
+  useEffect(() => {
+    if (screen !== 'done') return;
+    const timeout = window.setTimeout(reset, DONE_MS);
+    return () => window.clearTimeout(timeout);
   }, [screen, reset]);
 
   useEffect(() => {
@@ -173,7 +181,8 @@ export default function KioskPage() {
             <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300"><Check className="h-12 w-12" /></div>
             <div className="mt-6 text-4xl font-black">{doneMsg.title}</div>
             {doneMsg.text && <p className="mt-2 max-w-md text-lg text-white/70">{doneMsg.text}</p>}
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <p className="mt-6 text-sm text-white/50">Voltando ao início em alguns segundos…</p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               {data?.client && (
                 <button onClick={async () => { await refresh(); setScreen('home'); }} className="rounded-2xl border border-white/15 px-8 py-4 text-lg font-semibold hover:bg-white/10">Voltar ao meu painel</button>
               )}
