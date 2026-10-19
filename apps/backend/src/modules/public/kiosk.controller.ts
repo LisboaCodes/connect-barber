@@ -38,6 +38,23 @@ export class KioskController {
     return this.kiosk.walkIn(slug, token, body);
   }
 
+  @Post('availability')
+  availability(@Param('slug') slug: string, @Headers('x-kiosk-token') token: string | undefined, @Body() body: { clientId: string; date: string; serviceIds: string[]; professionalId?: string }) {
+    return this.kiosk.bookingAvailability(slug, token, body);
+  }
+
+  @Post('appointments')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  book(@Param('slug') slug: string, @Headers('x-kiosk-token') token: string | undefined, @Body() body: { clientId: string; serviceIds: string[]; professionalId: string; date: string; time: string }) {
+    return this.kiosk.book(slug, token, body);
+  }
+
+  @Post('appointments/:appointmentId/pay')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  payAppointment(@Param('slug') slug: string, @Headers('x-kiosk-token') token: string | undefined, @Param('appointmentId') appointmentId: string, @Body() body: { method: 'PIX' | 'COUNTER' }) {
+    return this.kiosk.payAppointment(slug, token, appointmentId, body?.method ?? 'COUNTER');
+  }
+
   @Post('orders/:orderId/pay')
   pay(@Param('slug') slug: string, @Headers('x-kiosk-token') token: string | undefined, @Param('orderId') orderId: string, @Body() body: { method: 'PIX' | 'POS' | 'COUNTER' }) {
     return this.kiosk.pay(slug, token, orderId, body?.method ?? 'COUNTER');

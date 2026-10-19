@@ -33,7 +33,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-4xl items-center gap-4 px-4">
           <Link to="/cliente" className="flex items-center">
-            <img src="/logo.png" alt="Connect Barber" className="h-10 w-auto rounded-lg" />
+            <img src="/logo.png?v=20261018" alt="Connect Barber" className="h-10 w-10 rounded-lg bg-white p-1" />
           </Link>
           <nav className="hidden items-center gap-1 sm:flex">
             {NAV.map((n) => (

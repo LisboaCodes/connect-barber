@@ -49,6 +49,7 @@ export class KioskService {
       logoUrl: t.logoUrl,
       coverUrl: t.coverUrl,
       timezone: t.timezone,
+      maxAdvanceDays: t.maxAdvanceDays,
       payments: { pix: this.payments.hasCreativePay(t), pos: this.payments.hasPos(t), counter: true },
       services,
       professionals,
@@ -143,6 +144,52 @@ export class KioskService {
     const text = `💈 ${client.name} chegou sem hora marcada e foi encaixado às ${best.time} (${services.map((s) => s.name).join(', ')}).`;
     this.messaging.send({ tenantId: t.id, clientId: client.id, kind: 'OTHER', channels: ['WHATSAPP'], phone: pro?.phone, subject: 'Cliente na loja', text, appointmentId: r.appointment.id }).catch(() => undefined);
     return { appointment: { id: r.appointment.id, time: best.time, professional: pro ? { id: pro.id, name: pro.name, avatarUrl: pro.avatarUrl, color: pro.color } : null, waitMinutes: Math.max(0, best.minutes - nowMin) } };
+  }
+
+  /** Horários para agendamento futuro pelo totem. */
+  async bookingAvailability(slug: string, token: string | undefined, q: { clientId: string; date: string; serviceIds: string[]; professionalId?: string }) {
+    const t = await this.tenant(slug, token);
+    await this.requireKioskClient(t.id, q.clientId);
+    if (!q.serviceIds?.length) throw new BadRequestException('Escolha ao menos um serviço');
+    const services = await this.prisma.service.findMany({ where: { tenantId: t.id, id: { in: q.serviceIds }, isActive: true, deletedAt: null, allowOnlineBooking: true } });
+    if (services.length !== q.serviceIds.length) throw new BadRequestException('Serviço indisponível para agendamento');
+    const duration = services.reduce((sum, service) => sum + service.durationMinutes, 0);
+    const list = await this.availability.forDate(t, q.date, duration, { professionalId: q.professionalId, serviceIds: q.serviceIds, onlineRules: true });
+    return list.map((item) => ({ professionalId: item.professionalId, professionalName: item.professionalName, slots: item.slots }));
+  }
+
+  /** Reserva pelo totem; a tela seguinte registra a forma de pagamento escolhida. */
+  async book(slug: string, token: string | undefined, dto: { clientId: string; serviceIds: string[]; professionalId: string; date: string; time: string }) {
+    const t = await this.tenant(slug, token);
+    const client = await this.requireKioskClient(t.id, dto.clientId);
+    const services = await this.prisma.service.findMany({ where: { tenantId: t.id, id: { in: dto.serviceIds }, isActive: true, deletedAt: null, allowOnlineBooking: true } });
+    if (!dto.serviceIds?.length || services.length !== dto.serviceIds.length) throw new BadRequestException('Serviço indisponível para agendamento');
+    const duration = services.reduce((sum, service) => sum + service.durationMinutes, 0);
+    const available = await this.availability.forDate(t, dto.date, duration, { professionalId: dto.professionalId, serviceIds: dto.serviceIds, onlineRules: true });
+    if (!available.some((person) => person.professionalId === dto.professionalId && person.slots.includes(dto.time))) throw new BadRequestException('Este horário não está mais disponível. Escolha outro horário.');
+    const r = await this.appointments.create(t.id, null, { clientId: client.id, professionalId: dto.professionalId, serviceIds: dto.serviceIds, date: dto.date, time: dto.time, status: 'SCHEDULED' }, 'KIOSK');
+    return { appointment: { id: r.appointment.id, date: dto.date, time: toLocalTime(r.appointment.startAt, t.timezone), totalPrice: Number(r.appointment.totalPrice), services: r.appointment.services.map((item) => item.service.name), professional: r.appointment.professional.name } };
+  }
+
+  /** Registra pagamento Pix ou escolha de pagamento presencial para agendamento. */
+  async payAppointment(slug: string, token: string | undefined, appointmentId: string, method: 'PIX' | 'COUNTER') {
+    const t = await this.tenant(slug, token);
+    const appointment = await this.prisma.appointment.findFirst({ where: { id: appointmentId, tenantId: t.id, deletedAt: null }, include: { client: true, professional: true } });
+    if (!appointment || !appointment.client) throw new NotFoundException('Agendamento não encontrado');
+    if (!['SCHEDULED', 'CONFIRMED'].includes(appointment.status)) throw new BadRequestException('Este agendamento não está ativo');
+    if (method === 'COUNTER') {
+      await this.prisma.appointment.update({ where: { id: appointment.id }, data: { status: 'CONFIRMED', confirmedAt: appointment.confirmedAt ?? new Date(), internalNotes: `${appointment.internalNotes ? `${appointment.internalNotes}\n` : ''}Pagamento escolhido no totem: presencial, a receber na barbearia.` } });
+      this.messaging.send({ tenantId: t.id, clientId: appointment.clientId, kind: 'OTHER', channels: ['WHATSAPP'], phone: appointment.professional.phone, subject: 'Novo agendamento pelo totem', text: `${appointment.client.name} agendou pelo totem para ${toLocalTime(appointment.startAt, t.timezone)} e escolheu pagar presencialmente.`, appointmentId: appointment.id }).catch(() => undefined);
+      return { counter: true, paid: false, remaining: Number(appointment.totalPrice) - Number(appointment.prepaidAmount) };
+    }
+    const intent = await this.payments.createCharge(t, { kind: 'PIX', amount: Number(appointment.totalPrice) - Number(appointment.prepaidAmount), appointmentId: appointment.id, clientId: appointment.clientId ?? undefined, description: `Agendamento ${toLocalTime(appointment.startAt, t.timezone)}`, customer: appointment.client });
+    return { counter: false, paid: false, remaining: Number(intent.amount), intent: { id: intent.id, kind: 'PIX' as const, qrCode: intent.qrCode, copyPaste: intent.copyPaste, expiresAt: intent.expiresAt, status: intent.status } };
+  }
+
+  private async requireKioskClient(tenantId: string, clientId: string) {
+    const client = await this.prisma.client.findFirst({ where: { id: clientId, tenantId, deletedAt: null } });
+    if (!client) throw new NotFoundException('Cliente não encontrado');
+    return client;
   }
 
   /** Pagamento da comanda pelo totem: PIX (QR), POS (maquininha) ou COUNTER (balcão) */

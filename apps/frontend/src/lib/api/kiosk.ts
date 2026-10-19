@@ -10,6 +10,9 @@ export function kioskClient(slug: string, token: string) {
     register: (payload: { name: string; phone: string; email?: string }) => http.post<KioskIdentify & { found?: boolean }>('/register', payload).then((r) => r.data),
     checkin: (appointmentId: string) => http.post<{ ok: boolean; already: boolean }>(`/checkin/${appointmentId}`).then((r) => r.data),
     walkIn: (payload: { clientId: string; serviceIds: string[]; professionalId?: string }) => http.post<{ appointment: { id: string; time: string; waitMinutes: number; professional: { id: string; name: string; avatarUrl: string | null; color: string } | null } }>('/walk-in', payload).then((r) => r.data),
+    bookingAvailability: (payload: { clientId: string; date: string; serviceIds: string[]; professionalId?: string }) => http.post<{ professionalId: string; professionalName: string; slots: string[] }[]>('/availability', payload).then((r) => r.data),
+    book: (payload: { clientId: string; serviceIds: string[]; professionalId: string; date: string; time: string }) => http.post<{ appointment: KioskBookedAppointment }>('/appointments', payload).then((r) => r.data),
+    payAppointment: (appointmentId: string, method: 'PIX' | 'COUNTER') => http.post<KioskPayResult>(`/appointments/${appointmentId}/pay`, { method }).then((r) => r.data),
     pay: (orderId: string, method: 'PIX' | 'POS' | 'COUNTER') => http.post<KioskPayResult>(`/orders/${orderId}/pay`, { method }).then((r) => r.data),
     paymentStatus: (intentId: string) => http.get<{ id: string; status: string; orderClosed: boolean }>(`/payments/${intentId}`).then((r) => r.data),
   };
@@ -20,9 +23,19 @@ export interface KioskConfig {
   logoUrl: string | null;
   coverUrl: string | null;
   timezone: string;
+  maxAdvanceDays: number;
   payments: { pix: boolean; pos: boolean; counter: boolean };
   services: { id: string; name: string; price: number; durationMinutes: number; categoryId: string | null; imageUrl: string | null }[];
   professionals: { id: string; name: string; avatarUrl: string | null; color: string }[];
+}
+
+export interface KioskBookedAppointment {
+  id: string;
+  date: string;
+  time: string;
+  totalPrice: number;
+  services: string[];
+  professional: string;
 }
 
 export interface KioskClient {

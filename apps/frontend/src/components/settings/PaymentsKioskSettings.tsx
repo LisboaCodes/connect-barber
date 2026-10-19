@@ -182,7 +182,7 @@ export default function PaymentsKioskSettings({ tenant }: { tenant: TenantLike }
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <div className="text-sm font-medium">Totem ativo</div>
-              <div className="text-xs text-muted-foreground">Abra o link abaixo no navegador do tablet e deixe em tela cheia.</div>
+              <div className="text-xs text-muted-foreground">Abra o link no Chrome do tablet e toque em “Instalar app” para deixar o totem como aplicativo em tela cheia.</div>
             </div>
             <Switch
               checked={kiosk.kioskEnabled}

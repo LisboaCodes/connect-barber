@@ -1,16 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CalendarPlus, Check, CreditCard, Delete, Hand, QrCode, Scissors, Store, UserPlus, Wallet } from 'lucide-react';
+import { ArrowLeft, CalendarPlus, Check, CreditCard, Delete, Hand, QrCode, Scissors, Store, UserPlus, Wallet, Download } from 'lucide-react';
 import { errorMessage } from '@/lib/api/client';
 import { kioskClient, type KioskAppointment, type KioskClient, type KioskConfig, type KioskIdentify, type KioskOrder, type KioskPayResult } from '@/lib/api/kiosk';
 import { cn } from '@/lib/utils/cn';
-import { fmtPhone, minutes, money } from '@/lib/utils/format';
+import { fmtPhone, minutes, money, toISODate } from '@/lib/utils/format';
 import { Spinner } from '@/components/ui';
+
+export function KioskLaunchPage() {
+  useEffect(() => {
+    const lastKiosk = localStorage.getItem('cb-kiosk-start-url');
+    window.location.replace(lastKiosk?.startsWith('/totem/') ? lastKiosk : '/');
+  }, []);
+  return <Center><Spinner className="h-10 w-10 text-white" /></Center>;
+}
 
 /* Totem de autoatendimento: tela cheia, botões grandes, volta à tela inicial após inatividade. */
 
-type Screen = 'idle' | 'phone' | 'register' | 'home' | 'walkin' | 'pay' | 'paying' | 'done';
+type Screen = 'idle' | 'phone' | 'register' | 'home' | 'walkin' | 'book' | 'bookpay' | 'pay' | 'paying' | 'done';
 const IDLE_MS = 90_000;
 const DONE_MS = 8_000;
 
@@ -33,6 +41,9 @@ export default function KioskPage() {
   const [error, setError] = useState<string | null>(null);
   const [payOrder, setPayOrder] = useState<KioskOrder | null>(null);
   const [payResult, setPayResult] = useState<KioskPayResult | null>(null);
+  const [booked, setBooked] = useState<{ id: string; date: string; time: string; totalPrice: number; services: string[]; professional: string } | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
   const [doneMsg, setDoneMsg] = useState<{ title: string; text?: string } | null>(null);
   const timer = useRef<number | null>(null);
 
@@ -43,8 +54,20 @@ export default function KioskPage() {
     setError(null);
     setPayOrder(null);
     setPayResult(null);
+    setBooked(null);
     setDoneMsg(null);
   }, []);
+
+  useEffect(() => {
+    if (!slug || !token) return;
+    localStorage.setItem('cb-kiosk-start-url', window.location.pathname + window.location.search);
+    setIsInstalled(window.matchMedia('(display-mode: standalone)').matches || !!(navigator as any).standalone);
+    const onInstall = (event: Event) => { event.preventDefault(); setInstallPrompt(event); };
+    const onInstalled = () => setIsInstalled(true);
+    window.addEventListener('beforeinstallprompt', onInstall);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => { window.removeEventListener('beforeinstallprompt', onInstall); window.removeEventListener('appinstalled', onInstalled); };
+  }, [slug, token]);
 
   // inatividade → volta ao início
   useEffect(() => {
@@ -98,17 +121,23 @@ export default function KioskPage() {
       {/* topo */}
       <header className="flex items-center justify-between px-8 py-5">
         <div className="flex items-center gap-3">
-          {c.logoUrl ? <img src={c.logoUrl} alt="" className="h-12 w-12 rounded-xl object-cover" /> : <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gold-500 text-xl font-bold text-moss-950">{c.name[0]}</div>}
+          <img src="/logo.png?v=20261018" alt="Connect Barber" className="h-12 w-12 rounded-xl bg-white object-contain p-1" />
           <div>
             <div className="text-lg font-bold leading-tight">{c.name}</div>
             <div className="text-xs text-white/60">Autoatendimento</div>
           </div>
         </div>
-        {screen !== 'idle' && (
+        <div className="flex items-center gap-2">
+          {!isInstalled && <button onClick={async () => {
+            if (installPrompt) { await installPrompt.prompt(); setInstallPrompt(null); }
+            else window.alert(/iPad|iPhone|iPod/.test(navigator.userAgent) ? 'No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.' : 'No menu do navegador, escolha “Instalar app” ou “Adicionar à tela inicial”.');
+          }} className="flex items-center gap-2 rounded-full bg-gold-500 px-4 py-2.5 text-sm font-bold text-moss-950"><Download className="h-4 w-4" /> Instalar app</button>}
+          {screen !== 'idle' && screen !== 'bookpay' && (
           <button onClick={reset} className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10">
             Sair
           </button>
-        )}
+          )}
+        </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-10">
@@ -148,10 +177,19 @@ export default function KioskPage() {
             onRefresh={refresh}
             onWalkIn={() => setScreen('walkin')}
             onPay={(o) => { setPayOrder(o); setScreen('pay'); }}
-            onBook={() => window.open(`/b/${slug}/agendar`, '_self')}
+            onBook={() => setScreen('book')}
             onDone={(m) => { setDoneMsg(m); setScreen('done'); }}
           />
         )}
+
+        {screen === 'book' && data?.client && <KioskBookingScreen cfg={c} api={api} client={data.client} onBack={() => setScreen('home')} onBooked={(appointment) => { setBooked(appointment); setScreen('bookpay'); }} />}
+
+        {screen === 'bookpay' && booked && data?.client && <AppointmentPaymentScreen cfg={c} appointment={booked} api={api} onStarted={(r) => {
+          setPayResult(r);
+          if (r.counter) { setDoneMsg({ title: 'Agendamento confirmado!', text: `Seu horário ficou reservado para ${booked.date} às ${booked.time}. O pagamento será feito presencialmente.` }); setScreen('done'); }
+          else if (r.paid) { setDoneMsg({ title: 'Agendamento confirmado!', text: 'Este horário já está pago.' }); setScreen('done'); }
+          else setScreen('paying');
+        }} />}
 
         {screen === 'walkin' && data?.client && (
           <WalkInScreen cfg={c} api={api} client={data.client} onBack={() => setScreen('home')} onDone={(m) => { setDoneMsg(m); setScreen('done'); }} />
@@ -173,7 +211,7 @@ export default function KioskPage() {
         )}
 
         {screen === 'paying' && payResult?.intent && (
-          <PayingScreen api={api} intent={payResult.intent} amount={payResult.remaining} onCancel={() => setScreen('pay')} onPaid={() => { setDoneMsg({ title: 'Pagamento confirmado!', text: 'Obrigado pela preferência. Até a próxima!' }); setScreen('done'); }} />
+          <PayingScreen api={api} intent={payResult.intent} amount={payResult.remaining} onCancel={() => setScreen(booked ? 'bookpay' : 'pay')} onPaid={() => { setDoneMsg({ title: 'Pagamento confirmado!', text: booked ? `Seu agendamento para ${booked.date} às ${booked.time} está confirmado. Obrigado!` : 'Obrigado pela preferência. Até a próxima!' }); setScreen('done'); }} />
         )}
 
         {screen === 'done' && doneMsg && (
@@ -274,6 +312,50 @@ function HomeScreen({ data, cfg, api, onRefresh, onWalkIn, onPay, onBook, onDone
       </section>
     </div>
   );
+}
+
+function KioskBookingScreen({ cfg, api, client, onBack, onBooked }: { cfg: KioskConfig; api: ReturnType<typeof kioskClient>; client: KioskClient; onBack: () => void; onBooked: (appointment: { id: string; date: string; time: string; totalPrice: number; services: string[]; professional: string }) => void }) {
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [professionalId, setProfessionalId] = useState('');
+  const [date, setDate] = useState(toISODate(new Date()));
+  const [slot, setSlot] = useState<{ time: string; professionalId: string; professionalName: string } | null>(null);
+  const availability = useQuery({
+    queryKey: ['kiosk-booking-availability', client.id, date, serviceIds.join(','), professionalId],
+    queryFn: () => api.bookingAvailability({ clientId: client.id, date, serviceIds, professionalId: professionalId || undefined }),
+    enabled: serviceIds.length > 0 && !!date,
+  });
+  const slots = [...new Map((availability.data ?? []).flatMap((person) => person.slots.map((time) => [time, { time, professionalId: person.professionalId, professionalName: person.professionalName }] as const))).values()].sort((a, b) => a.time.localeCompare(b.time));
+  const book = useMutation({
+    mutationFn: () => api.book({ clientId: client.id, serviceIds, professionalId: slot!.professionalId, date, time: slot!.time }),
+    onSuccess: (r) => onBooked(r.appointment),
+  });
+  const total = cfg.services.filter((s) => serviceIds.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + cfg.maxAdvanceDays);
+  return (
+    <div className="flex flex-1 flex-col gap-5">
+      <div className="flex items-center gap-3"><button onClick={onBack} className="rounded-full border border-white/15 p-3"><ArrowLeft className="h-5 w-5" /></button><div><div className="text-2xl font-bold">Agendar horário</div><div className="text-sm text-white/60">Escolha serviços, profissional e data</div></div></div>
+      <section><SectionLabel>Serviços</SectionLabel><div className="grid gap-2 sm:grid-cols-2">{cfg.services.map((service) => {
+        const active = serviceIds.includes(service.id);
+        return <button key={service.id} onClick={() => { setServiceIds((ids) => active ? ids.filter((id) => id !== service.id) : [...ids, service.id]); setSlot(null); }} className={cn('flex items-center justify-between rounded-2xl border p-4 text-left', active ? 'border-gold-400 bg-gold-500/15' : 'border-white/10 bg-white/5')}><span><b>{service.name}</b><small className="block text-white/60">{minutes(service.durationMinutes)}</small></span><b>{money(service.price)}</b></button>;
+      })}</div></section>
+      <section><SectionLabel>Profissional</SectionLabel><div className="flex flex-wrap gap-2"><Chip on={!professionalId} onClick={() => { setProfessionalId(''); setSlot(null); }}>Qualquer profissional</Chip>{cfg.professionals.map((person) => <Chip key={person.id} on={professionalId === person.id} onClick={() => { setProfessionalId(person.id); setSlot(null); }}>{person.name}</Chip>)}</div></section>
+      <label className="block text-sm font-semibold">Data<input className="mt-2 block w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-white" type="date" min={toISODate(new Date())} max={toISODate(maxDate)} value={date} onChange={(e) => { setDate(e.target.value); setSlot(null); }} /></label>
+      {serviceIds.length > 0 && <section><SectionLabel>Horários livres</SectionLabel>{availability.isLoading ? <Spinner className="h-7 w-7" /> : availability.isError ? <div className="text-red-200">{errorMessage(availability.error)}</div> : slots.length === 0 ? <div className="text-white/60">Não há horários livres nesta data.</div> : <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">{slots.map((item) => <button key={`${item.time}-${item.professionalId}`} onClick={() => setSlot(item)} className={cn('rounded-xl border px-3 py-3 font-semibold', slot?.time === item.time && slot.professionalId === item.professionalId ? 'border-gold-400 bg-gold-500 text-moss-950' : 'border-white/15 bg-white/5')}>{item.time}</button>)}</div>}</section>}
+      {book.error && <div className="rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-200">{errorMessage(book.error, 'Não foi possível agendar este horário.')}</div>}
+      <div className="mt-auto flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-4"><div><div className="text-sm text-white/60">{slot ? `${slot.professionalName} · ${slot.time}` : 'Selecione um horário'}</div><div className="text-2xl font-black">{money(total)}</div></div><BigButton disabled={!serviceIds.length || !slot || book.isPending} onClick={() => book.mutate()}>{book.isPending ? <Spinner className="h-6 w-6 text-moss-950" /> : 'Continuar'}</BigButton></div>
+    </div>
+  );
+}
+
+function AppointmentPaymentScreen({ cfg, appointment, api, onStarted }: { cfg: KioskConfig; appointment: { id: string; date: string; time: string; totalPrice: number; services: string[]; professional: string }; api: ReturnType<typeof kioskClient>; onStarted: (r: KioskPayResult) => void }) {
+  const pay = useMutation({ mutationFn: (method: 'PIX' | 'COUNTER') => api.payAppointment(appointment.id, method), onSuccess: onStarted });
+  return <div className="flex flex-1 flex-col gap-5"><div><div className="text-2xl font-bold">Agendamento realizado</div><div className="text-sm text-white/60">{appointment.date} às {appointment.time} · {money(appointment.totalPrice)}</div></div>
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5"><div className="font-semibold">{appointment.services.join(', ')}</div><div className="mt-1 text-sm text-white/60">com {appointment.professional}</div></div>
+    <div className="text-lg font-semibold">Como deseja pagar?</div>{pay.error && <div className="rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-200">{errorMessage(pay.error)}</div>}
+    {cfg.payments.pix && <Tile icon={QrCode} title="Pagar agora com Pix" text="Gerar QR code CreativePay e confirmar automaticamente" onClick={() => pay.mutate('PIX')} disabled={pay.isPending} big />}
+    <Tile icon={Store} title="Pagar presencialmente" text="Confirmar o agendamento e pagar na barbearia" onClick={() => pay.mutate('COUNTER')} disabled={pay.isPending} big />
+  </div>;
 }
 
 function RegisterScreen({ api, phone, onDone, onBack }: { api: ReturnType<typeof kioskClient>; phone: string; onDone: (r: KioskIdentify) => void; onBack: () => void }) {

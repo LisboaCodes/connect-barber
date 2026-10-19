@@ -593,7 +593,7 @@ export default function OnboardingPage() {
       <header className="border-b bg-gray-950 text-white">
         <div className="mx-auto flex h-16 max-w-4xl items-center gap-3 px-4 sm:px-6">
           <Link to="/app" className="flex items-center">
-            <img src="/logo.png" alt="Connect Barber" className="h-10 w-auto rounded-lg" />
+            <img src="/logo.png?v=20261018" alt="Connect Barber" className="h-10 w-10 rounded-lg bg-white p-1" />
           </Link>
           <span className="hidden text-sm text-gray-400 sm:inline">· Configuração inicial</span>
           <Button variant="ghost" size="sm" className="ml-auto text-gray-300 hover:bg-white/10 hover:text-white" asChild>

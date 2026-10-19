@@ -49,6 +49,7 @@ const ProfilePage = lazy(() => import('@/pages/app/ProfilePage'));
 const BarbershopPage = lazy(() => import('@/pages/public/BarbershopPage'));
 const SurveyPage = lazy(() => import('@/pages/public/SurveyPage'));
 const KioskPage = lazy(() => import('@/pages/public/KioskPage'));
+const KioskLaunchPage = lazy(() => import('@/pages/public/KioskPage').then((m) => ({ default: m.KioskLaunchPage })));
 const ClientAreaPage = lazy(() => import('@/pages/client/ClientAreaPage'));
 
 // Administração da plataforma
@@ -89,6 +90,7 @@ export default function App() {
             <Route path="/b/:slug/*" element={<BarbershopPage />} />
             <Route path="/avaliar/:token" element={<SurveyPage />} />
             <Route path="/totem/:slug" element={<KioskPage />} />
+            <Route path="/totem-app" element={<KioskLaunchPage />} />
 
             {/* Área do cliente */}
             <Route element={<RequireAuth />}>

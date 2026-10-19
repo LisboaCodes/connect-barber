@@ -28,7 +28,7 @@ export function AuthLayout({
       <aside className="relative hidden w-[44%] max-w-xl flex-col justify-between overflow-hidden bg-gray-950 p-10 text-white lg:flex">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(165,140,100,0.45),transparent_60%)]" />
         <Link to="/" className="relative flex items-center">
-          <img src="/logo-dark.png" alt="Connect Barber" className="h-16 w-auto" />
+          <img src="/logo.png?v=20261018" alt="Connect Barber" className="h-16 w-16 rounded-xl bg-white p-1" />
         </Link>
         <div className="relative">
           <h2 className="text-3xl font-extrabold leading-tight">{sideTitle}</h2>
@@ -47,7 +47,7 @@ export function AuthLayout({
       <main className="flex flex-1 flex-col">
         <div className="flex items-center justify-between p-4 lg:hidden">
           <Link to="/" className="flex items-center">
-            <img src="/logo.png" alt="Connect Barber" className="h-10 w-auto rounded-lg" />
+            <img src="/logo.png?v=20261018" alt="Connect Barber" className="h-10 w-10 rounded-lg bg-white p-1" />
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-8">

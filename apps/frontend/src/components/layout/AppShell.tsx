@@ -113,7 +113,7 @@ export default function AppShell() {
     <div className="flex h-full flex-col bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))]">
       <div className="flex h-16 items-center gap-2 px-5">
         <Link to="/app" className="flex items-center">
-          <img src="/logo-dark.png" alt="Connect Barber" className="h-12 w-auto" />
+          <img src="/logo.png?v=20261018" alt="Connect Barber" className="h-12 w-12 rounded-xl bg-white p-1" />
         </Link>
         <button className="ml-auto lg:hidden" onClick={() => setOpen(false)}>
           <X className="h-5 w-5" />
