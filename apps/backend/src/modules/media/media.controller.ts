@@ -28,7 +28,9 @@ export class MediaController {
   async get(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
     const media = await this.media.get(id);
     const etag = `"${media.id}"`;
-    if (req.headers['if-none-match'] === etag) {
+    // proxies (Cloudflare) devolvem o ETag fraco: W/"id"
+    const inm = String(req.headers['if-none-match'] ?? '').replace(/^W\//, '');
+    if (inm === etag) {
       res.status(304).end();
       return;
     }
