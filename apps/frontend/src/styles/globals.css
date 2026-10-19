@@ -66,3 +66,11 @@
     text-wrap: balance;
   }
 }
+
+@layer base {
+  /* Sem grid-template-columns (ex.: `grid lg:grid-cols-3` abaixo de lg), a coluna implícita vira `auto`
+     e cresce com tabelas/gráficos; minmax(0,1fr) mantém tudo dentro da tela no celular. */
+  .grid {
+    grid-auto-columns: minmax(0, 1fr);
+  }
+}
