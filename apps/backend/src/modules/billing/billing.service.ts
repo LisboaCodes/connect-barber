@@ -200,7 +200,14 @@ export class BillingService {
     if (!meta.invoiceId && !meta.orderId) return { processed: false, reason: 'sem referência' };
 
     if (event === 'order.completed') {
-      if (meta.invoiceId) await this.markInvoicePaid(String(meta.invoiceId), externalId);
+      if (meta.invoiceId) {
+        const inv = await this.prisma.invoice.findUnique({ where: { id: String(meta.invoiceId) } });
+        if (!inv) {
+          this.logger.warn(`Webhook CreativePay: fatura ${meta.invoiceId} não existe (pedido ${externalId ?? '?'})`);
+          return { processed: false, reason: 'fatura não encontrada' };
+        }
+        await this.markInvoicePaid(inv.id, externalId);
+      }
       if (meta.orderId) await this.settleOrderPayment(String(meta.orderId), externalId, body);
     } else if (event === 'order.pending') {
       if (meta.invoiceId && externalId) await this.prisma.invoice.updateMany({ where: { id: String(meta.invoiceId), status: { in: ['OPEN', 'OVERDUE'] } }, data: { externalId } });
