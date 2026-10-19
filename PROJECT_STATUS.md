@@ -50,10 +50,17 @@ Deploy v1 em 18/10/2026: https://connect-barber.creativenext.cloud (app) e https
 - **Resend**: domínio `creativenext.cloud` criado na conta; **faltam os registros DNS na Cloudflare** (lista em `SERVIDOR/SERVIDOR.md`). Até lá os e-mails ficam como FAILED em message_logs.
 - **Mobile**: corrigido transbordo horizontal (dashboard e relatórios). Varredura automática (Playwright) de todas as páginas públicas e do painel em desktop e celular sem erro de console ou HTTP; agendamento online de ponta a ponta validado no ambiente local.
 
+## 19/10/2026 (noite) — upload de imagens
+
+- **Upload pelo painel** em vez de colar URL: logotipo (Configurações e Site), capa, galeria (várias fotos de uma vez), foto do perfil e foto do profissional. Componente `ImageUpload`/`UploadButton` reduz a imagem no navegador (máx. 1600 px, PNG mantém transparência) e ainda permite colar um link.
+- **API `/api/media`**: `POST` (multipart `file`, até 5 MB, JPG/PNG/WEBP/GIF verificados pela assinatura, cota de 300 MB por barbearia), `GET /:id` público com cache imutável + ETag, `DELETE /:id` pelo dono. Imagens ficam na tabela `media_files` (no Postgres, então entram no backup do banco). Env opcional `API_PUBLIC_URL` define o host dos links (em produção: `https://api-connect-barber.creativenext.cloud`).
+- Correção de robustez: o serializador global agora corta referências circulares (um handler com `@Res()` devolvia o Response do Express e derrubava a API por falta de memória).
+- Testado localmente (API via curl e painel via Playwright no celular: site, galeria, página pública, perfil e profissional sem erros).
+
 ## Próximos passos
 
 1. Adicionar os registros DNS do Resend na Cloudflare e verificar o domínio; testar e-mails (boas-vindas, fatura, lembrete).
 2. Primeiro pagamento real de plano por Pix (Efí) e conferir o webhook.
 3. Testes de uso real com uma barbearia piloto e ajustes de UX.
-4. Upload de imagens (logo/capa/galeria hoje são URLs).
+4. Imagens de serviços e produtos (campos existem no banco, ainda sem tela).
 5. App nas lojas (hoje é PWA instalável).
